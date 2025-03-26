@@ -1,4 +1,4 @@
-# Configuration de l’IP statique sur les postes
+# Configuration de l’IP statique sur les machines
 
 ## 1. Désactivation du DHCP sur le Stormshield (DMZ-RT)
 Avant d'attribuer des adresses IP statiques, il est essentiel de désactiver le serveur DHCP pour éviter les conflits.
@@ -8,28 +8,26 @@ Avant d'attribuer des adresses IP statiques, il est essentiel de désactiver le 
     - Aller dans **Configuration** → **Réseau** → **DHCP**.
 3. **Désactiver le serveur DHCP** en décochant l’option **"Activer le service DHCP"** sur l’interface DMZ.
 4. **Appliquer les changements**.
-## 2. Configuration d'une adresse IP statique sur chaque poste
+## 2. Configuration d'une adresse IP statique sur chaque machine
 Chaque machine de la DMZ doit être configurée avec une adresse IP statique pour assurer une connectivité stable.
 ### Étapes générales :
-1. **Ajouter le poste au switch "DMZ-SW"** dans GNS3.
-2. **Configurer le poste manuellement :**
-    - **Clic droit sur le poste** dans GNS3 → **Configure**.
+1. **Connecter la machine au switch dédié** dans GNS3.
+2. **Configurer la machine manuellement :**
+    - **Clic droit sur la machine** dans GNS3 → **Configure**.
     - Aller dans l’onglet **General settings**.
     - Descendre jusqu’à **Network configuration** et cliquer sur **Edit**.
-
 ### 3. Modification du fichier de configuration réseau
-**Ouvrir le fichier de configuration réseau** et activer l’IP statique :
+**Ouvrir le fichier de configuration réseau** et activer l’IP statique, comme dans l'exemple ci-dessous :
 ```sh
 iface eth0 inet static
-	address 10.10.10.2         # Adresse IP du poste
+	address 10.10.10.2         # Adresse IP de la machine
 	netmask 255.255.255.240    # Masque de sous-réseau
-	gateway 10.10.10.1         # Passerelle (Stormshield DMZ-RT)
-	up echo "nameserver 8.8.8.8" > /etc/resolv.conf
+	gateway 10.10.10.1         # Passerelle dédié
+	up echo "nameserver 8.8.8.8" > /etc/resolv.conf 
 	up echo "nameserver 1.1.1.1" >> /etc/resolv.conf
 ```
 
-**Remarque :** Si un serveur DNS interne est utilisé, remplacer `8.8.8.8` et `1.1.1.1` par l’IP du serveur DNS local.
-
+**Remarque :** Si un serveur DNS interne est utilisé, remplacer le dns préféré par `172.16.50.2` (IP du serveur DNS local) et `1.1.1.1` .
 ### 4. Appliquer les modifications et tester la connexion
 
 1. **Redémarrer l’interface réseau** avec :
@@ -49,24 +47,16 @@ iface eth0 inet static
     ping 8.8.8.8         # Tester la connectivité Internet
     ```
 
-### 5. Répéter l’opération pour les autres postes
-
-- Modifier l’**adresse IP** pour chaque poste en respectant la plage définie (`192.168.85.X`).
+### 5. Répéter l’opération pour les autres machines
+- Modifier l’**adresse IP** pour chaque machine en respectant la plage définie.
 - Assigner une **IP unique** pour éviter les conflits.
 - Vérifier que chaque machine peut **communiquer avec la passerelle et les autres équipements**.
 
-### 6. Tableau d'adressage
-| **Machine** | **adresse IP** | Masque de sous réseaux |
-| :---------- | -------------- | ---------------------- |
-| DMZ-WEB     | 10.10.10.2     | 255.255.255.240        |
-| DMZ-SMTP    | 10.10.10.3     | 255.255.255.240        |
-| DMZ-DNS     | 10.10.10.4     | 255.255.255.240        |
-| DMZ-RPROXY  | 10.10.10.5     | 255.255.255.240        |
-
 ---
 # Rendre la configuration persistante
-1. Faire un clique droit sur la machine, ensuite cliquer sur "**Configure**"
-2. Dans l'onglet "**Advanced**" nous avons le second champ qui nous renseigne : "_Répertoires supplémentaires à rendre persistants, non inclus dans la configuration des volumes de l'image. Un répertoire par ligne._"
+1. Faire un clic droit sur la machine, ensuite cliquer sur "**Configure**"
+2. Dans l'onglet "**Advanced**" nous avons le second champ qui nous renseigne : "
+Additional directories to make persistent that are not included in the image VOLUMES config. One directory per line._"
 3. Ajouter les répertoires suivants :
 ```
 /bin
@@ -91,18 +81,15 @@ iface eth0 inet static
 ---
 # Installation OpenSSH Server
 ### 1. Ouvrir la console du conteneur dans GNS3
-1. Lance ton conteneur Ubuntu dans GNS3 (docker Ubuntu guest).
-2. Fais un clic droit > **Console** (ou “Open a console” selon la version).
-3. Tu arrives normalement en shell (souvent avec un utilisateur par défaut ou root directement, selon l’image).
+1. Lancer le conteneur Ubuntu dans GNS3 (docker Ubuntu guest).
+2. Faire un clic droit > **Console**.
+3. Le shell s'ouvre avec utilisateur par défaut `root` directement.
 ### 2. Installation du serveur SSH
-Depuis la console du conteneur :
+Depuis la console du conteneur entrer les commandes suivantes pour installer le service SSH (fichier binaire `sshd`) et les dépendances :
 ```sh
 apt update 
 apt install openssh-server -y
 ```
-
->[!Information]
->Cela va installer le serveur SSH (fichier binaire `sshd`) et les dépendances.
 ### 3. Vérifier (et démarrer) le service SSH
 
 ```sh
@@ -116,13 +103,13 @@ Souvent dans Docker, le compte `root` n’a pas de mot de passe, pour éviter de
 passwd root
 ```
 
-Il nous demandera de saisir puis confirmer un mot de passe.
+Il nous sera demandé de saisir puis confirmer un mot de passe.
 ## Créer un un autre utilisateur pour Ansible
 ### Pourquoi ?
 Le fait d’autoriser une connexion SSH directe en tant que **root** est généralement considéré comme moins sécurisé pour plusieurs raisons :
 - **Surface d’attaque plus large** : S’il est compromis l’attaquant dispose immédiatement de tous les droits.
 - **Cible évidente** : brute force sur utilisateur "root".
-- **Moins de traçabilité** : Journal de logs nous avons que root et nous pourrons pas voir qui à fait quoi.
+- **Moins de traçabilité** : Dans le journal des logs seul l'utilisateur `root` est utilisé, ce qui ne permet pas d'identifier qui a effectuer quelles actions.
 ### Créer un utilisateur standard avec droits sudo
 ```sh
 adduser ansible
@@ -143,8 +130,8 @@ service ssh restart
 ```
 
 ---
-
-
+---
+---
 ## ==Info Samy ==
 Hello, pour automatiser le lancement de certain services dans un conteneur GNS3 vous pouvez utiliser le fichier `/gns3/run-cmd.sh`, ce fichier est lancé automatiquement au démarrage d'un conteneur, à l'intérieur vous avez par défaut :
 

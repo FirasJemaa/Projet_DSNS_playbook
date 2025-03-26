@@ -329,9 +329,8 @@ extendedKeyUsage = clientAuth
   when: false  # Désactivé car pas de service dédié
   comment: "Exemple pour d'autres services qui utiliseraient OpenSSL"
 ```
-6. Playbook principal (ajouts)
-yaml
-Copy
+## 6 Playbook principal (ajouts)
+```
 # playbooks/pki.yml
 ---
 - name: Déploiement complet du serveur PKI
@@ -354,6 +353,8 @@ Copy
       debug:
         msg: "CA déployée avec succès. Certificat valide jusqu'au {{ cert_check.stdout | regex_search('Not After : (.+)') }}"
       when: cert_check is defined
+```
+
 Commentaires :
 
 Ajout de pré-vérifications système
@@ -362,17 +363,16 @@ Affichage des informations de validation en fin de déploiement
 
 Meilleure gestion des erreurs
 
-7. Points de sécurité et bonnes pratiques (complétés)
-Sauvegarde des clés :
+## 7 Points de sécurité et bonnes pratiques 
+### Sauvegarde des clés :
 
 La clé privée de la CA doit être sauvegardée hors ligne
 
 Utiliser Ansible Vault pour chiffrer les données sensibles
 
-Rotation des certificats :
+### Rotation des certificats :
 
-yaml
-Copy
+```
 - name: Renouveler le certificat CA avant expiration
   command: >
     openssl x509 -x509toreq
@@ -380,23 +380,25 @@ Copy
     -signkey {{ pki_ca_dir }}/private/{{ pki_ca_key_name }}
     -out {{ pki_ca_dir }}/private/ca_renew.csr
   when: cert_check.stdout | regex_search('Not After : (.+)') | expiration_date_compare
+```
+
 Révocation :
 
-yaml
-Copy
+```
 - name: Révoquer un certificat
   command: >
     openssl ca -revoke {{ pki_ca_dir }}/newcerts/{{ cert_to_revoke }}.pem
     -config {{ pki_openssl_conf }}
   vars:
     cert_to_revoke: "01"  # Numéro de série du certificat
+```
+
 Journalisation :
 
 Ajouter des tâches pour logger les actions importantes
 
-8. Exemple de signature de certificat serveur (bonus)
-yaml
-Copy
+## 8 Exemple de signature de certificat serveur (bonus)
+```
 - name: Générer une CSR pour un serveur
   command: >
     openssl req -new -newkey rsa:2048
@@ -410,6 +412,8 @@ Copy
     -out {{ pki_ca_dir }}/certs/server.crt
     -config {{ pki_openssl_conf }}
     -extensions v3_server
+```
+
 Commentaires finaux :
 Cette version améliorée inclut :
 
@@ -427,6 +431,6 @@ Des bonnes pratiques opérationnelles
 
 Pour le déployer :
 
-bash
-Copy
+```
 ansible-playbook -i inventory/hosts playbooks/pki.yml --ask-vault-pass
+```

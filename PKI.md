@@ -24,7 +24,9 @@
 **Commentaires :**
 - Cette structure suit les best practices d'Ansible
 - Le rôle est auto-contenu avec séparation claire des variables, templates et tâches
-## 2. Exemple d'inventaire `inventory/hosts.ini`
+- Il faudra ajouter les configurations respectives dans chaque fichier avec la commande nano `srv-pki/`
+  
+## 2. `inventory/hosts.ini`
 
 ```ini
 [srv-pki]

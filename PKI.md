@@ -329,7 +329,7 @@ extendedKeyUsage = clientAuth
   when: false  # Désactivé car pas de service dédié
   comment: "Exemple pour d'autres services qui utiliseraient OpenSSL"
 ```
-## 6 Playbook principal (ajouts)
+## 6 Playbook principal `playbooks/pki.yml`
 ```
 # playbooks/pki.yml
 ---

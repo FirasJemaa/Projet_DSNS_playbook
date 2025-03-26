@@ -26,7 +26,7 @@
 - Le rôle est auto-contenu avec séparation claire des variables, templates et tâches
 - Il faudra ajouter les configurations respectives dans chaque fichier avec la commande `nano srv-pki/`
   
-## 2. `inventory/hosts.ini`
+## 2. Configuration `inventory/hosts.ini`
 
 ```ini
 [srv-pki]
@@ -76,7 +76,7 @@ pki_cert_mode: "0644"
 - Ajout de paramètres de sécurité (permissions, algorithmes)
 - La durée de validité est configurable (10 ans par défaut pour la CA)
 
-## 4. Configuration OpenSSL (template amélioré)
+## 4. Configuration OpenSSL 'templates/main.yml`
 
 ```jinja2
 [ ca ]

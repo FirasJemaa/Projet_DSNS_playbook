@@ -366,9 +366,9 @@ Meilleure gestion des erreurs
 ## 7 Points de sécurité et bonnes pratiques 
 ### Sauvegarde des clés :
 
-La clé privée de la CA doit être sauvegardée hors ligne
+- La clé privée de la CA doit être sauvegardée hors ligne car c'est l'élément le plus critique de notre PKI (par exemple sur un support physique de type clé USB chiffrée).
 
-Utiliser Ansible Vault pour chiffrer les données sensibles
+- Il est également possible d'tiliser Ansible Vault qui est intégré à ansible, afin de chiffrer nos données sensibles dans nos fichiers yaml.
 
 ### Rotation des certificats :
 

@@ -123,8 +123,7 @@ extendedKeyUsage = clientAuth
 
 ## 5. Tâches du rôle PKI 
 
-```yaml
-# roles/pki/tasks/main.yml
+`# roles/pki/tasks/main.yml
 
 - name: Installer les paquets nécessaires
   apt:
@@ -134,6 +133,11 @@ extendedKeyUsage = clientAuth
     state: present
     update_cache: yes
   tags: installation
+  notify: restart openssl
+  comment: |
+    Installation des paquets de base pour la PKI
+    - openssl : outils cryptographiques
+    - ca-certificates : bundle de certificats racines
 
 - name: Créer l'arborescence PKI
   file:
@@ -147,6 +151,10 @@ extendedKeyUsage = clientAuth
     - { path: "{{ pki_ca_dir }}/newcerts", mode: "0755" }
     - { path: "{{ pki_ca_dir }}/private", mode: "{{ pki_private_dir_mode }}" }
   tags: setup
+  comment: |
+    Création de l'arborescence PKI standard
+    - /private a des permissions restrictives (0700 par défaut)
+    - Autres dossiers en 755
 
 - name: Initialiser les fichiers de base
   file:
@@ -158,6 +166,11 @@ extendedKeyUsage = clientAuth
     - { file: "serial", mode: "0644" }
     - { file: "crlnumber", mode: "0644" }
   tags: setup
+  comment: |
+    Création des fichiers de suivi OpenSSL
+    - index.txt : base de données des certificats
+    - serial : numéro de série incrémental
+    - crlnumber : suivi des révocation
 
 - name: Initialiser le numéro de série
   copy:
@@ -168,8 +181,66 @@ extendedKeyUsage = clientAuth
   vars:
     serial_file: "{{ lookup('stat', pki_ca_dir + '/serial') }}"
   tags: setup
+  comment: |
+    Initialise le fichier serial avec '01' si inexistant
+    Conditionné par when: pour éviter l'écrasement
 
-[... autres tâches d'initialisation ...]
+- name: Initialiser le numéro de CRL
+  copy:
+    dest: "{{ pki_ca_dir }}/crlnumber"
+    content: "01"
+    mode: "0644"
+  when: not crl_file.stat.exists
+  vars:
+    crl_file: "{{ lookup('stat', pki_ca_dir + '/crlnumber') }}"
+  tags: setup
+  comment: "Même principe que pour le serial mais pour les CRL"
+
+- name: Créer le fichier index.txt vide
+  copy:
+    dest: "{{ pki_ca_dir }}/{{ pki_index_file }}"
+    content: ""
+    mode: "0644"
+  when: not index_file.stat.exists
+  vars:
+    index_file: "{{ lookup('stat', pki_ca_dir + '/' + pki_index_file) }}"
+  tags: setup
+  comment: "Fichier vide pour la base de données des certificats"
+
+- name: Déployer le fichier de configuration OpenSSL
+  template:
+    src: openssl.cnf.j2
+    dest: "{{ pki_openssl_conf }}"
+    owner: root
+    group: root
+    mode: "0644"
+  tags: configuration
+  comment: |
+    Déploie le template Jinja2 personnalisé
+    Utilise les variables définies dans vars/main.yml
+
+- name: Générer le fichier aléatoire OpenSSL
+  command: openssl rand -out {{ pki_ca_dir }}/private/.rand 4096
+  args:
+    creates: "{{ pki_ca_dir }}/private/.rand"
+  tags: setup
+  comment: "Fichier de graine aléatoire pour la génération de clés"
+
+- name: Sécuriser les permissions des dossiers
+  file:
+    path: "{{ item }}"
+    mode: "0750"
+    owner: root
+    group: root
+  loop:
+    - "{{ pki_ca_dir }}"
+    - "{{ pki_ca_dir }}/private"
+  tags: security
+  comment: "Double vérification des permissions"
+
+# ==================== #
+# PARTIE CERTIFICATS CA #
+# ==================== #
 
 - name: Générer la clé privée de la CA
   command: >
@@ -180,6 +251,10 @@ extendedKeyUsage = clientAuth
     creates: "{{ pki_ca_dir }}/private/{{ pki_ca_key_name }}"
   notify: Secure CA private key
   tags: certificates
+  comment: |
+    Génère la clé RSA 4096 bits par défaut
+    - creates: évite la regénération si existe déjà
+    - notify: déclenche le handler de sécurisation
 
 - name: Générer le certificat auto-signé de la CA
   command: >
@@ -194,12 +269,30 @@ extendedKeyUsage = clientAuth
   args:
     creates: "{{ pki_ca_dir }}/certs/{{ pki_ca_cert_name }}"
   tags: certificates
+  comment: |
+    Crée le certificat auto-signé (root CA)
+    - Valide 10 ans par défaut (pki_ca_days)
+    - Utilise les extensions v3_ca définies dans le template
 
 - name: Valider le certificat CA
   command: openssl x509 -in {{ pki_ca_dir }}/certs/{{ pki_ca_cert_name }} -noout -text
   register: cert_check
   changed_when: false
   tags: validation
+  comment: "Vérification technique du certificat généré"
+
+- name: Afficher les infos du certificat
+  debug:
+    msg: |
+      CA générée avec succès !
+      Validité: {{ cert_check.stdout | regex_search('Not After : (.+)') }}
+      Sujet: {{ cert_check.stdout | regex_search('Subject: (.+)') }}
+  when: cert_check is defined
+  tags: validation
+
+# ================== #
+# GESTION DES CRL    #
+# ================== #
 
 - name: Générer le CRL initial
   command: >
@@ -209,6 +302,30 @@ extendedKeyUsage = clientAuth
   args:
     creates: "{{ pki_ca_dir }}/crl/crl.pem"
   tags: crl
+  comment: "Génère la première liste de révocation (vide)"
+
+- name: Vérifier le CRL
+  command: openssl crl -in {{ pki_ca_dir }}/crl/crl.pem -noout -text
+  register: crl_check
+  changed_when: false
+  when: crl_check is defined
+  tags: validation``
 ```
 
-# (Suite du contenu dans le fichier Markdown généré)
+##Fichier handler associé ```roles/pki/handlers/main.yml``` :
+```
+- name: Secure CA private key
+  file:
+    path: "{{ pki_ca_dir }}/private/{{ pki_ca_key_name }}"
+    mode: "{{ pki_key_mode | default('0600') }}"
+    owner: root
+    group: root
+  comment: "Sécurise la clé privée après sa création"
+
+- name: restart openssl
+  service:
+    name: openssl
+    state: restarted
+  when: false  # Désactivé car pas de service dédié
+  comment: "Exemple pour d'autres services qui utiliseraient OpenSSL"
+```

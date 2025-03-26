@@ -125,6 +125,7 @@ extendedKeyUsage = clientAuth
 
 ```yaml
 # roles/pki/tasks/main.yml
+
 - name: Installer les paquets nécessaires
   apt:
     name:
@@ -147,7 +148,67 @@ extendedKeyUsage = clientAuth
     - { path: "{{ pki_ca_dir }}/private", mode: "{{ pki_private_dir_mode }}" }
   tags: setup
 
-... (le reste suit dans le fichier complet)
+- name: Initialiser les fichiers de base
+  file:
+    path: "{{ pki_ca_dir }}/{{ item.file }}"
+    state: touch
+    mode: "{{ item.mode }}"
+  loop:
+    - { file: "{{ pki_index_file }}", mode: "0644" }
+    - { file: "serial", mode: "0644" }
+    - { file: "crlnumber", mode: "0644" }
+  tags: setup
+
+- name: Initialiser le numéro de série
+  copy:
+    dest: "{{ pki_ca_dir }}/serial"
+    content: "01"
+    mode: "0644"
+  when: not serial_file.stat.exists
+  vars:
+    serial_file: "{{ lookup('stat', pki_ca_dir + '/serial') }}"
+  tags: setup
+
+[... autres tâches d'initialisation ...]
+
+- name: Générer la clé privée de la CA
+  command: >
+    openssl genrsa
+    -out {{ pki_ca_dir }}/private/{{ pki_ca_key_name }}
+    {{ pki_key_bits }}
+  args:
+    creates: "{{ pki_ca_dir }}/private/{{ pki_ca_key_name }}"
+  notify: Secure CA private key
+  tags: certificates
+
+- name: Générer le certificat auto-signé de la CA
+  command: >
+    openssl req -x509 -new -nodes
+    -key {{ pki_ca_dir }}/private/{{ pki_ca_key_name }}
+    -sha256
+    -days {{ pki_ca_days }}
+    -config {{ pki_openssl_conf }}
+    -extensions v3_ca
+    -subj "/C={{ pki_country }}/ST={{ pki_state }}/L={{ pki_locality }}/O={{ pki_organization }}/OU={{ pki_organizational_unit }}/CN={{ pki_common_name }}/emailAddress={{ pki_email_address }}"
+    -out {{ pki_ca_dir }}/certs/{{ pki_ca_cert_name }}
+  args:
+    creates: "{{ pki_ca_dir }}/certs/{{ pki_ca_cert_name }}"
+  tags: certificates
+
+- name: Valider le certificat CA
+  command: openssl x509 -in {{ pki_ca_dir }}/certs/{{ pki_ca_cert_name }} -noout -text
+  register: cert_check
+  changed_when: false
+  tags: validation
+
+- name: Générer le CRL initial
+  command: >
+    openssl ca -gencrl
+    -config {{ pki_openssl_conf }}
+    -out {{ pki_ca_dir }}/crl/crl.pem
+  args:
+    creates: "{{ pki_ca_dir }}/crl/crl.pem"
+  tags: crl
 ```
 
 # (Suite du contenu dans le fichier Markdown généré)

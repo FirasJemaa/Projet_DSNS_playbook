@@ -121,7 +121,7 @@ extendedKeyUsage = clientAuth
 - Ajout de sections dédiées pour les certificats serveur et client
 - Meilleure gestion des contraintes X509v3
 
-## 5. Tâches du rôle PKI (version améliorée)
+## 5. Tâches du rôle PKI 
 
 ```yaml
 # roles/pki/tasks/main.yml

@@ -10,8 +10,6 @@
 │   └── pki.yml
 └── roles/
     └── pki/
-        ├── defaults/
-        │   └── main.yml
         ├── files/
         ├── handlers/
         │   └── main.yml

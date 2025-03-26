@@ -121,7 +121,7 @@ extendedKeyUsage = clientAuth
 - Ajout de sections dédiées pour les certificats serveur et client
 - Meilleure gestion des contraintes X509v3
 
-## 5. Tâches du rôle PKI 
+## 5. Configuration tâches du rôle PKI `roles/pki/tasks/main.yml`
 ```
 # roles/pki/tasks/main.yml
 
@@ -312,7 +312,7 @@ extendedKeyUsage = clientAuth
   tags: validation``
 ```
 
-##Fichier handler associé ```roles/pki/handlers/main.yml``` :
+## Fichier handler associé ```roles/pki/handlers/main.yml``` :
 ```
 - name: Secure CA private key
   file:

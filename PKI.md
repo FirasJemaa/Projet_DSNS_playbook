@@ -122,8 +122,8 @@ extendedKeyUsage = clientAuth
 - Meilleure gestion des contraintes X509v3
 
 ## 5. Tâches du rôle PKI 
-
-`# roles/pki/tasks/main.yml
+```
+# roles/pki/tasks/main.yml
 
 - name: Installer les paquets nécessaires
   apt:

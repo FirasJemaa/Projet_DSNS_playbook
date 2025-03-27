@@ -334,7 +334,7 @@ extendedKeyUsage = clientAuth
 ---
 - name: Déploiement complet du serveur PKI
   hosts: srv-pki
-  become: false  # <- optionnel ici, mais clair
+  become: yes
   gather_facts: yes
   
   pre_tasks:

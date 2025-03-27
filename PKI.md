@@ -458,41 +458,41 @@ find . -name "*.yml" -exec bash -c 'iconv -f ISO-8859-1 -t UTF-8 "{}" -o "{}.utf
 
 ---
 
-## ❌ **Problèmes rencontrés**
+## Problèmes rencontrés
 
-### 1. **Erreur : `Missing sudo password`**
+### 1. Erreur : `Missing sudo password`
 
 ```bash
 fatal: [srv-pki.itway.local]: FAILED! => {"msg": "Missing sudo password"}
 ```
 
-🔍 Ansible tentait d’utiliser `sudo` via `become: true`, mais :
+Ansible tentait d’utiliser `sudo` via `become: true`, mais :
 
 - Aucun mot de passe `sudo` n’était fourni
     
-- L’utilisateur `ansible` **n’était pas autorisé à utiliser `sudo` sans mot de passe**
+- L’utilisateur `ansible` n’était pas autorisé à utiliser `sudo` sans mot de passe
     
 
 ---
 
-### 2. **Erreur : `sudo must be owned by uid 0 and have the setuid bit set`**
+### 2. Erreur : `sudo must be owned by uid 0 and have the setuid bit set`
 
 ```bash
 sudo: /usr/bin/sudo must be owned by uid 0 and have the setuid bit set
 ```
 
-🔍 Sur la machine distante, le binaire `sudo` avait des **permissions corrompues** :
+Sur la machine distante, le binaire `sudo` avait des permissions corrompues :
 
-- Il n'était **pas possédé par root**
+- Il n'était pas possédé par root
     
-- Le **bit setuid** n’était pas activé
+- Le "bit setuid" n’était pas activé
     
 
 Conséquence : `sudo` était inutilisable, même avec les bons droits d’utilisateur.
 
 ---
 
-### 3. **Tentatives sans succès**
+### 3. Tentatives sans succès
 
 - Suppression de `become: true` : entraînait des erreurs de permissions sur les tâches sensibles (`apt`, `/etc`, `/var`)
     
@@ -505,9 +505,9 @@ Conséquence : `sudo` était inutilisable, même avec les bons droits d’utilis
 
 ---
 
-## ✅ **Corrections apportées**
+## Corrections apportées
 
-### 🛠️ **1. Réparation du binaire `sudo` sur la machine distante**
+### 1. Réparation du binaire `sudo` sur la machine distante
 
 Sur la machine `srv-pki.itway.local`, en root :
 
@@ -516,7 +516,7 @@ chown root:root /usr/bin/sudo
 chmod 4755 /usr/bin/sudo
 ```
 
-🔹 Cela a permis de :
+Cela a permis de :
 
 - Restaurer la propriété correcte (`root`)
     
@@ -525,7 +525,7 @@ chmod 4755 /usr/bin/sudo
 
 ---
 
-### 🛠️ **2. Ajout de l'utilisateur `ansible` au fichier sudoers (via visudo)**
+### 2. Ajout de l'utilisateur `ansible` au fichier sudoers (via visudo)
 
 Commande :
 
@@ -539,11 +539,11 @@ Ajout de la ligne suivante :
 ansible ALL=(ALL) NOPASSWD: ALL
 ```
 
-🔹 Cela a permis à Ansible d’utiliser `sudo` **sans mot de passe**, essentiel pour le fonctionnement automatique d’Ansible avec `become: true`.
+Cela a permis à Ansible d’utiliser `sudo` sans mot de passe, essentiel pour le fonctionnement automatique d’Ansible avec `become: true`.
 
 ---
 
-### 🛠️ **3. Mise à jour de l’inventaire Ansible**
+### 3. Mise à jour de l’inventaire Ansible
 
 Fichier `inventory/hosts.ini` :
 
@@ -554,7 +554,7 @@ srv-pki.itway.local ansible_host=172.16.50.3 ansible_user=ansible ansible_ssh_pr
 
 ---
 
-### 🛠️ **4. Configuration du playbook Ansible**
+### 4. Configuration du playbook Ansible
 
 Fichier `playbooks/setup-pki.yaml` :
 
@@ -570,7 +570,7 @@ Fichier `playbooks/setup-pki.yaml` :
 
 ---
 
-## ✅ **Résultat final**
+## Résultat final
 
 ✔️ Le rôle `srv-pki` s'exécute désormais correctement via Ansible avec l’utilisateur `ansible`  
 ✔️ Aucune demande de mot de passe sudo  
@@ -579,7 +579,7 @@ Fichier `playbooks/setup-pki.yaml` :
 
 ---
 
-## 📌 Recommandations pour l’avenir
+## Recommandations pour l’avenir
 
 - Toujours valider que `sudo` est correctement installé et configuré
     

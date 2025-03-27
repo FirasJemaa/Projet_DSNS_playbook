@@ -97,6 +97,7 @@ default_md      = {{ pki_default_md }}
 policy          = policy_match
 email_in_dn     = no
 default_days    = {{ pki_ca_days }}
+default_crl_days = {{ pki_crl_days }}
 crl_days        = {{ pki_crl_days }}
 unique_subject  = no
 x509_extensions = v3_ca  # <-- indique quelle section utiliser lors de la creation

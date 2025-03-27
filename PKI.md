@@ -350,7 +350,7 @@ extendedKeyUsage = clientAuth
       when: cert_check is defined
 ```
 
-Commentaires :
+**Commentaires :**
 
 Ajout de pré-vérifications système
 
@@ -417,36 +417,6 @@ Commentaires finaux :
 ansible-playbook -i inventory/hosts playbooks/pki.yml --ask-vault-pass
 ```
 
-## 10. Erreurs rencontrées : 
-```
-ERROR! Unexpected Exception, this is probably a bug: 'utf-8' codec can't encode character '\udcc3' in position 346: surrogates not allowed
-```
-Cause probable :
-Un caractère spécial mal encodé (é, à, ç, etc.)
-
-Un fichier YAML enregistré en latin1 ou Windows-1252 au lieu d’UTF-8
-
-Un copier-coller depuis un éditeur non UTF-8
-
-Solution :
-
-Identifier le fichier fautif avec un mode verbeux :
-```
-ansible-playbook -i inventory/hosts.ini playbooks/setup-pki.yaml -vvv
-```
-Vérifier l'encodage du fichier suspect :
-```
-file playbooks/setup-pki.yaml
-```
-S’il n’est pas en UTF-8, le convertir :
-```
-iconv -f ISO-8859-1 -t UTF-8 playbooks/setup-pki.yaml -o playbooks/setup-pki-fixed.yaml
-mv playbooks/setup-pki-fixed.yaml playbooks/setup-pki.yaml
-```
-Corriger tous les fichiers YAML en une commande :
-```
-find . -name "*.yml" -exec bash -c 'iconv -f ISO-8859-1 -t UTF-8 "{}" -o "{}.utf8"
-```
 
 ## 10. Problèmes rencontrés et Résolution 
 
@@ -456,119 +426,10 @@ find . -name "*.yml" -exec bash -c 'iconv -f ISO-8859-1 -t UTF-8 "{}" -o "{}.utf
 - L’accès SSH par clé privée était déjà en place et fonctionnel.
 - Le rôle Ansible nécessitait des tâches avec privilèges (`apt`, fichiers dans `/etc/`, etc.), donc une élévation de privilèges (`sudo`) était nécessaire.
 
----
 
-## Problèmes rencontrés
 
-### 1. Erreur : `Missing sudo password`
 
-```bash
-fatal: [srv-pki.itway.local]: FAILED! => {"msg": "Missing sudo password"}
-```
 
-Ansible tentait d’utiliser `sudo` via `become: true`, mais :
-
-- Aucun mot de passe `sudo` n’était fourni
-    
-- L’utilisateur `ansible` n’était pas autorisé à utiliser `sudo` sans mot de passe
-    
-
----
-
-### 2. Erreur : `sudo must be owned by uid 0 and have the setuid bit set`
-
-```bash
-sudo: /usr/bin/sudo must be owned by uid 0 and have the setuid bit set
-```
-
-Sur la machine distante, le binaire `sudo` avait des permissions corrompues :
-
-- Il n'était pas possédé par root
-    
-- Le "bit setuid" n’était pas activé
-    
-
-Conséquence : `sudo` était inutilisable, même avec les bons droits d’utilisateur.
-
----
-
-### 3. Tentatives sans succès
-
-- Suppression de `become: true` : entraînait des erreurs de permissions sur les tâches sensibles (`apt`, `/etc`, `/var`)
-    
-- Ajout de `ansible_become=false` : même limitation
-    
-- `--ask-become-pass` : bloquant en environnement automatisé
-    
-- Passage en `ansible_user=root` : contraire aux objectifs (utiliser un utilisateur dédié)
-    
-
----
-
-## Corrections apportées
-
-### 1. Réparation du binaire `sudo` sur la machine distante
-
-Sur la machine `srv-pki.itway.local`, en root :
-
-```bash
-chown root:root /usr/bin/sudo
-chmod 4755 /usr/bin/sudo
-```
-
-Cela a permis de :
-
-- Restaurer la propriété correcte (`root`)
-    
-- Activer le setuid (`chmod 4755`) pour permettre l’élévation
-    
-
----
-
-### 2. Ajout de l'utilisateur `ansible` au fichier sudoers (via visudo)
-
-Commande :
-
-```bash
-visudo
-```
-
-Ajout de la ligne suivante :
-
-```bash
-ansible ALL=(ALL) NOPASSWD: ALL
-```
-
-Cela a permis à Ansible d’utiliser `sudo` sans mot de passe, essentiel pour le fonctionnement automatique d’Ansible avec `become: true`.
-
----
-
-### 3. Mise à jour de l’inventaire Ansible
-
-Fichier `inventory/hosts.ini` :
-
-```ini
-[srv-pki]
-srv-pki.itway.local ansible_host=172.16.50.3 ansible_user=ansible ansible_ssh_private_key_file=~/.ssh/id_ed25519 ansible_become=true ansible_become_method=sudo ansible_become_user=root
-```
-
----
-
-### 4. Configuration du playbook Ansible
-
-Fichier `playbooks/setup-pki.yaml` :
-
-```yaml
-- name: Deploiement complet du serveur PKI
-  hosts: srv-pki
-  become: true
-  gather_facts: yes
-
-  roles:
-    - srv-pki
-```
-
----
 
 ## Résultat final
 
@@ -577,7 +438,6 @@ Fichier `playbooks/setup-pki.yaml` :
 ✔️ Toutes les tâches nécessitant une élévation de privilèges fonctionnent (`apt`, fichiers système, certificats)  
 ✔️ L’architecture respecte les bonnes pratiques : **utilisateur dédié + `sudo` sécurisé**
 
----
 
 ## Recommandations pour l’avenir
 
@@ -594,4 +454,3 @@ Fichier `playbooks/setup-pki.yaml` :
 - Utiliser Ansible Vault pour sécuriser les données sensibles si besoin
     
 
----

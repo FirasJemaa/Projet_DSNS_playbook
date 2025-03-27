@@ -30,7 +30,7 @@
 
 ```ini
 [srv-pki]
-srv-pki.itway.local ansible_host=172.16.50.3 ansible_user=ansible ansible_ssh_private_key_file=~/.ssh/id_rsa
+srv-pki.itway.local ansible_host=172.16.50.3 ansible_user=ansible ansible_become=false ansible_ssh_private_key_file=~/.ssh/id_rsa
 ```
 
 **Commentaires :**

@@ -1,0 +1,22 @@
+- name: Deploiement complet du serveur PKI
+  hosts: srv-pki
+  become: yes
+#  gather_facts: yes
+
+  pre_tasks:
+    - name: Verifier que le systeme est compatible
+      assert:
+        that:
+          - ansible_os_family == "Debian"
+          - ansible_distribution == "Ubuntu"
+          - ansible_distribution_major_version | int >= 22
+        msg: "Ce playbook necessite Ubuntu 22 ou superieur"
+
+  roles:
+    - srv-pki
+
+  post_tasks:
+    - name: Afficher les informations du certificat
+      debug:
+        msg: "CA deployee avec succes. Certificat valide jusqu'au {{ cert_check.stdout | regex_search('Not After : (.+)') }}"
+      when: cert_check is defined

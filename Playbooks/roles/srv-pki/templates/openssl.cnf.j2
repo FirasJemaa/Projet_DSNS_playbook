@@ -1,0 +1,49 @@
+[ ca ]
+default_ca = CA_default
+
+[ CA_default ]
+dir             = {{ pki_ca_dir }}
+certs           = $dir/certs
+crl_dir         = $dir/crl
+new_certs_dir   = $dir/newcerts
+database        = $dir/{{ pki_index_file }}
+serial          = $dir/{{ pki_serial_file }}
+RANDFILE        = $dir/private/.rand
+private_key     = $dir/private/{{ pki_ca_key_name }}
+certificate     = $dir/certs/{{ pki_ca_cert_name }}
+default_md      = {{ pki_default_md }}
+policy          = policy_match
+email_in_dn     = no
+default_days    = {{ pki_ca_days }}
+default_crl_days = {{ pki_crl_days }}
+crl_days        = {{ pki_crl_days }}
+unique_subject  = no
+x509_extensions = v3_ca  # <-- indique quelle section utiliser lors de la creation
+
+[ policy_match ]
+countryName             = match
+stateOrProvinceName     = match
+organizationName        = match
+organizationalUnitName  = optional
+commonName              = supplied
+emailAddress            = optional
+
+[ v3_ca ]
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+basicConstraints = critical, CA:true
+keyUsage = critical, digitalSignature, cRLSign, keyCertSign
+
+[ v3_server ]
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+basicConstraints = critical, CA:false
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+
+[ v3_client ]
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+basicConstraints = critical, CA:false
+keyUsage = critical, digitalSignature
+extendedKeyUsage = clientAuth

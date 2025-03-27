@@ -77,7 +77,7 @@ pki_cert_mode: "0644"
 - Ajout de paramètres de sécurité (permissions, algorithmes)
 - La durée de validité est configurable (10 ans par défaut pour la CA)
 
-## 4. Configuration OpenSSL 'templates/main.yml`
+## 4. Configuration OpenSSL 'templates/openssl.cnf.j2`
 
 ```jinja2
 [ ca ]
@@ -99,20 +99,33 @@ email_in_dn     = no
 default_days    = {{ pki_ca_days }}
 crl_days        = {{ pki_crl_days }}
 unique_subject  = no
+x509_extensions = v3_ca  # <-- indique quelle section utiliser lors de la creation
 
-# Nouvelle section pour les certificats serveur
+[ policy_match ]
+countryName             = match
+stateOrProvinceName     = match
+organizationName        = match
+organizationalUnitName  = optional
+commonName              = supplied
+emailAddress            = optional
+
+[ v3_ca ]
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+basicConstraints = critical, CA:true
+keyUsage = critical, digitalSignature, cRLSign, keyCertSign
+
 [ v3_server ]
 subjectKeyIdentifier = hash
 authorityKeyIdentifier = keyid:always,issuer
-basicConstraints = critical,CA:FALSE
+basicConstraints = critical, CA:false
 keyUsage = critical, digitalSignature, keyEncipherment
 extendedKeyUsage = serverAuth
 
-# Nouvelle section pour les certificats clients
 [ v3_client ]
 subjectKeyIdentifier = hash
 authorityKeyIdentifier = keyid:always,issuer
-basicConstraints = critical,CA:FALSE
+basicConstraints = critical, CA:false
 keyUsage = critical, digitalSignature
 extendedKeyUsage = clientAuth
 ```
@@ -207,16 +220,21 @@ extendedKeyUsage = clientAuth
   tags: setup```
   #comment: "Même principe que pour le serial mais pour les CRL"
 
-- name: Créer le fichier index.txt vide
+- name: Verifier si le fichier index.txt existe
+  stat:
+    path: "{{ pki_ca_dir }}/{{ pki_index_file }}"
+  register: index_file
+  tags: setup
+#Cette tâche vérifie l'existence du fichier index.txt qui sert de base de données pour les certificats
+
+- name: Creer le fichier index.txt vide
   copy:
     dest: "{{ pki_ca_dir }}/{{ pki_index_file }}"
     content: ""
     mode: "0644"
   when: not index_file.stat.exists
-  vars:
-    index_file: "{{ lookup('stat', pki_ca_dir + '/' + pki_index_file) }}"
   tags: setup
-  #comment: "Fichier vide pour la base de données des certificats"
+#Crée le fichier index.txt seulement s'il n'existe pas déjà. Le fichier est vide initialement et aura des permissions 644
 
 - name: Déployer le fichier de configuration OpenSSL
   template:

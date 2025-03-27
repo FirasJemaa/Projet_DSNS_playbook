@@ -173,18 +173,30 @@ extendedKeyUsage = clientAuth
     #- serial : numéro de série incrémental
     #- crlnumber : suivi des révocation
 
+# Verifie d abord si le fichier existe
+- name: Vérifier si le fichier serial existe
+  stat:
+    path: "{{ pki_ca_dir }}/serial"
+  register: serial_file
+  tags: setup
+
+# Puis seulement, si le fichier n'existe pas, on l'initialise
 - name: Initialiser le numéro de série
   copy:
     dest: "{{ pki_ca_dir }}/serial"
     content: "01"
     mode: "0644"
   when: not serial_file.stat.exists
-  vars:
-    serial_file: "{{ lookup('stat', pki_ca_dir + '/serial') }}"
   tags: setup
   #comment: |
    # Initialise le fichier serial avec '01' si inexistant
     #Conditionné par when: pour éviter l'écrasement
+
+```- name: Vérifier si le fichier crlnumber existe
+  stat:
+    path: "{{ pki_ca_dir }}/crlnumber"
+  register: crl_file
+  tags: setup
 
 - name: Initialiser le numéro de CRL
   copy:
@@ -192,9 +204,7 @@ extendedKeyUsage = clientAuth
     content: "01"
     mode: "0644"
   when: not crl_file.stat.exists
-  vars:
-    crl_file: "{{ lookup('stat', pki_ca_dir + '/crlnumber') }}"
-  tags: setup
+  tags: setup```
   #comment: "Même principe que pour le serial mais pour les CRL"
 
 - name: Créer le fichier index.txt vide

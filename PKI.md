@@ -33,9 +33,9 @@
 srv-pki.itway.local ansible_host=172.16.50.3 ansible_user=ansible ansible_ssh_private_key_file=~/.ssh/id_rsa
 ```
 
-**Commentaires :**
-- L'utilisation d'un FQDN est recommandée pour les PKI
-- L’authentification SSH par clé **est déjà en place**, ce qui assure une connexion sécurisée
+#**Commentaires :**
+#- L'utilisation d'un FQDN est recommandée pour les PKI
+#- L’authentification SSH par clé **est déjà en place**, ce qui assure une connexion sécurisée
 ## 3. Variables pour la PKI `roles/pki/vars/main.yml`
 
 ```yaml
@@ -70,11 +70,10 @@ pki_private_dir_mode: "0700"
 pki_key_mode: "0600"
 pki_cert_mode: "0644"
 ```
-
-**Commentaires :**
-- Tous les paramètres techniques sont maintenant externalisés en variables
-- Ajout de paramètres de sécurité (permissions, algorithmes)
-- La durée de validité est configurable (10 ans par défaut pour la CA)
+#**Commentaires :**
+#- Tous les paramètres techniques sont maintenant externalisés en variables
+#- Ajout de paramètres de sécurité (permissions, algorithmes)
+#- La durée de validité est configurable (10 ans par défaut pour la CA)
 
 ## 4. Configuration OpenSSL 'templates/main.yml`
 

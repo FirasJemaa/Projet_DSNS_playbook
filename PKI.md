@@ -1,5 +1,7 @@
 # SERVEUR PKI - Déploiement Automatisé avec Ansible
 
+#REPRENDRE TOUS LES FICHIERS POUR QU'IlS SOIENT SANS ACCENT 
+
 ## Organisation des rôles et fichiers Ansible
 
 ```

@@ -1,7 +1,7 @@
 # SERVEUR PKI - Déploiement Automatisé avec Ansible
 
 
-## Organisation des rôles et fichiers Ansible
+## 1. Organisation des rôles et fichiers Ansible
 
 ```
 ├── ansible.cfg
@@ -322,7 +322,7 @@ extendedKeyUsage = clientAuth
   when: false  # Désactivé car pas de service dédié
   #comment: "Exemple pour d'autres services qui utiliseraient OpenSSL"
 ```
-## 6 Playbook principal `playbooks/pki.yml`
+## 6. Playbook principal `playbooks/pki.yml`
 ```
 # playbooks/pki.yml
 ---
@@ -358,7 +358,7 @@ Affichage des informations de validation en fin de déploiement
 
 Meilleure gestion des erreurs
 
-## 7 Points de sécurité et bonnes pratiques 
+## 7. Points de sécurité et bonnes pratiques 
 ### Sauvegarde des clés :
 
 - La clé privée de la CA doit être sauvegardée hors ligne car c'est l'élément le plus critique de notre PKI (par exemple sur un support physique de type clé USB chiffrée).

@@ -417,40 +417,73 @@ Commentaires finaux :
 ansible-playbook -i inventory/hosts playbooks/pki.yml --ask-vault-pass
 ```
 
+---
+## 10. Problèmes rencontrés et résolution
+### 1. Erreur d’encodage YAML / UTF-8
+### Erreur :
+```sh
+Syntax Error while loading YAML.
+  . unacceptable character #x0083: control characters are not allowed
+  in "<unicode string>", position 501
+```
 
-## 10. Problèmes rencontrés et Résolution 
+>[!Causes probable]
+>- Caractère spécial mal encodé (`é`, `à`, `ç`, etc.)
+>- Copier-coller depuis un éditeur non UTF-8
+>- Caractère invisible dans un fichier texte (`\x83`, `\udcXX`…)
 
-### Contexte initial
+### Solution :
+1. Identifier le fichier fautif :
+```bash
+ansible-playbook -i inventory/hosts.ini playbooks/setup-pki.yaml -vvv
+```
+2. Rechercher les caractères suspects (exemple avec `\x83`) :
+```bash
+grep -rl $'\x83' .
+```
+3. Corriger les erreurs
+4. Convertir tous les `.yml` en UTF-8 (en masse) :
+```bash
+find . -name "*.yml" -exec bash -c 'iconv -f ISO-8859-1 -t UTF-8 "{}" -o "{}.utf8" && mv "{}.utf8" "{}"' \;
+```
 
-- L’objectif était de déployer un rôle Ansible (`srv-pki`) sur un serveur distant (`srv-pki.itway.local`) en utilisant l’utilisateur `ansible` (non-root).
-- L’accès SSH par clé privée était déjà en place et fonctionnel.
-- Le rôle Ansible nécessitait des tâches avec privilèges (`apt`, fichiers dans `/etc/`, etc.), donc une élévation de privilèges (`sudo`) était nécessaire.
+### 2. Erreur : `Missing sudo password`
+### Erreur :
+```sh
+fatal: [srv-pki.itway.local]: FAILED! => {"msg": "Missing sudo password"}
+```
 
+>[!Causes]
+>`become: true` était activé, mais l’utilisateur `ansible` n'était **pas autorisé à utiliser sudo sans mot de passe**
+### Solution :
+On édite la configuration sudo via `visudo` sur la machine distante :
+```bash
+visudo
+```
 
+Ajouter la ligne suivante à la fin du fichier :
+```bash
+ansible ALL=(ALL) NOPASSWD: ALL
+```
 
+### 3. Erreur : `sudo must be owned by uid 0 and have the setuid bit set`
+### Erreur :
+```sh
+sudo: /usr/bin/sudo must be owned by uid 0 and have the setuid bit set
+```
 
+>[!Causes]
+>- Les permissions sur `/usr/bin/sudo` ont été altérées
+>- Le binaire n’est plus exécutable avec élévation
+### Solution :
+Réparation des droits sudo :
+```bash
+chown root:root /usr/bin/sudo
+chmod 4755 /usr/bin/sudo
+```
 
-
-## Résultat final
-
-✔️ Le rôle `srv-pki` s'exécute désormais correctement via Ansible avec l’utilisateur `ansible`  
-✔️ Aucune demande de mot de passe sudo  
-✔️ Toutes les tâches nécessitant une élévation de privilèges fonctionnent (`apt`, fichiers système, certificats)  
-✔️ L’architecture respecte les bonnes pratiques : **utilisateur dédié + `sudo` sécurisé**
-
-
-## Recommandations pour l’avenir
-
-- Toujours valider que `sudo` est correctement installé et configuré
-    
-- Ne pas désactiver `become` si des tâches système sont présentes
-    
-- Vérifier que le binaire `/usr/bin/sudo` est bien :
-    
-    ```bash
-    -rwsr-xr-x 1 root root ...
-    ```
-    
-- Utiliser Ansible Vault pour sécuriser les données sensibles si besoin
-    
+Vérification :
+```bash
+ls -l /usr/bin/sudo
+```
 

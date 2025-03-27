@@ -334,15 +334,17 @@ extendedKeyUsage = clientAuth
 ---
 - name: Déploiement complet du serveur PKI
   hosts: srv-pki
-  #become: yes
+  become: false  # <- optionnel ici, mais clair
+  gather_facts: yes
   
   pre_tasks:
     - name: Vérifier que le système est compatible
       assert:
         that:
           - ansible_os_family == "Debian"
+          - ansible_distribution: "Ubuntu"
           - ansible_distribution_major_version | int >= 10
-        msg: "Ce playbook nécessite Debian 10 ou supérieur"
+        msg: "Ce playbook nécessite Ubuntu supérieur"
 
   roles:
     - srv-pki

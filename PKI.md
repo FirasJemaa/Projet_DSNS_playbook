@@ -484,3 +484,151 @@ Corriger tous les fichiers YAML en une commande :
 ```
 find . -name "*.yml" -exec bash -c 'iconv -f ISO-8859-1 -t UTF-8 "{}" -o "{}.utf8"
 ```
+
+## 10. Problèmes rencontrés et Résolution 
+
+### Contexte initial
+
+- L’objectif était de déployer un rôle Ansible (`srv-pki`) sur un serveur distant (`srv-pki.itway.local`) en utilisant l’utilisateur `ansible` (non-root).
+- L’accès SSH par clé privée était déjà en place et fonctionnel.
+- Le rôle Ansible nécessitait des tâches avec privilèges (`apt`, fichiers dans `/etc/`, etc.), donc une élévation de privilèges (`sudo`) était nécessaire.
+
+---
+
+## ❌ **Problèmes rencontrés**
+
+### 1. **Erreur : `Missing sudo password`**
+
+```bash
+fatal: [srv-pki.itway.local]: FAILED! => {"msg": "Missing sudo password"}
+```
+
+🔍 Ansible tentait d’utiliser `sudo` via `become: true`, mais :
+
+- Aucun mot de passe `sudo` n’était fourni
+    
+- L’utilisateur `ansible` **n’était pas autorisé à utiliser `sudo` sans mot de passe**
+    
+
+---
+
+### 2. **Erreur : `sudo must be owned by uid 0 and have the setuid bit set`**
+
+```bash
+sudo: /usr/bin/sudo must be owned by uid 0 and have the setuid bit set
+```
+
+🔍 Sur la machine distante, le binaire `sudo` avait des **permissions corrompues** :
+
+- Il n'était **pas possédé par root**
+    
+- Le **bit setuid** n’était pas activé
+    
+
+Conséquence : `sudo` était inutilisable, même avec les bons droits d’utilisateur.
+
+---
+
+### 3. **Tentatives sans succès**
+
+- Suppression de `become: true` : entraînait des erreurs de permissions sur les tâches sensibles (`apt`, `/etc`, `/var`)
+    
+- Ajout de `ansible_become=false` : même limitation
+    
+- `--ask-become-pass` : bloquant en environnement automatisé
+    
+- Passage en `ansible_user=root` : contraire aux objectifs (utiliser un utilisateur dédié)
+    
+
+---
+
+## ✅ **Corrections apportées**
+
+### 🛠️ **1. Réparation du binaire `sudo` sur la machine distante**
+
+Sur la machine `srv-pki.itway.local`, en root :
+
+```bash
+chown root:root /usr/bin/sudo
+chmod 4755 /usr/bin/sudo
+```
+
+🔹 Cela a permis de :
+
+- Restaurer la propriété correcte (`root`)
+    
+- Activer le setuid (`chmod 4755`) pour permettre l’élévation
+    
+
+---
+
+### 🛠️ **2. Ajout de l'utilisateur `ansible` au fichier sudoers (via visudo)**
+
+Commande :
+
+```bash
+visudo
+```
+
+Ajout de la ligne suivante :
+
+```bash
+ansible ALL=(ALL) NOPASSWD: ALL
+```
+
+🔹 Cela a permis à Ansible d’utiliser `sudo` **sans mot de passe**, essentiel pour le fonctionnement automatique d’Ansible avec `become: true`.
+
+---
+
+### 🛠️ **3. Mise à jour de l’inventaire Ansible**
+
+Fichier `inventory/hosts.ini` :
+
+```ini
+[srv-pki]
+srv-pki.itway.local ansible_host=172.16.50.3 ansible_user=ansible ansible_ssh_private_key_file=~/.ssh/id_ed25519 ansible_become=true ansible_become_method=sudo ansible_become_user=root
+```
+
+---
+
+### 🛠️ **4. Configuration du playbook Ansible**
+
+Fichier `playbooks/setup-pki.yaml` :
+
+```yaml
+- name: Deploiement complet du serveur PKI
+  hosts: srv-pki
+  become: true
+  gather_facts: yes
+
+  roles:
+    - srv-pki
+```
+
+---
+
+## ✅ **Résultat final**
+
+✔️ Le rôle `srv-pki` s'exécute désormais correctement via Ansible avec l’utilisateur `ansible`  
+✔️ Aucune demande de mot de passe sudo  
+✔️ Toutes les tâches nécessitant une élévation de privilèges fonctionnent (`apt`, fichiers système, certificats)  
+✔️ L’architecture respecte les bonnes pratiques : **utilisateur dédié + `sudo` sécurisé**
+
+---
+
+## 📌 Recommandations pour l’avenir
+
+- Toujours valider que `sudo` est correctement installé et configuré
+    
+- Ne pas désactiver `become` si des tâches système sont présentes
+    
+- Vérifier que le binaire `/usr/bin/sudo` est bien :
+    
+    ```bash
+    -rwsr-xr-x 1 root root ...
+    ```
+    
+- Utiliser Ansible Vault pour sécuriser les données sensibles si besoin
+    
+
+---

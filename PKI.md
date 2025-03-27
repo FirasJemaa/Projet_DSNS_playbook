@@ -346,7 +346,7 @@ extendedKeyUsage = clientAuth
         msg: "Ce playbook nécessite Debian 10 ou supérieur"
 
   roles:
-    - pki
+    - srv-pki
 
   post_tasks:
     - name: Afficher les informations du certificat

@@ -41,7 +41,7 @@ srv-pki.itway.local ansible_host=172.16.50.3 ansible_user=ansible ansible_become
 ## 3. Variables pour la PKI `roles/pki/vars/main.yml`
 
 ```yaml
-# Paramètres de base PKI
+# Parametres de base PKI
 pki_country: "FR"
 pki_state: "Ile-de-France"
 pki_locality: "Paris"
@@ -61,13 +61,13 @@ pki_index_file: "index.txt"
 pki_serial_file: "serial"
 pki_crl_number_file: "crlnumber"
 
-# Paramètres techniques (ajoutés)
+# Parametres techniques (ajoutes)
 pki_key_bits: 4096
 pki_ca_days: 3650
 pki_default_md: "sha256"
 pki_crl_days: 30
 
-# Permissions (ajoutées)
+# Permissions (ajoutees)
 pki_private_dir_mode: "0700"
 pki_key_mode: "0600"
 pki_cert_mode: "0644"

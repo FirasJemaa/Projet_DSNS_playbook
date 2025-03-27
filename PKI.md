@@ -33,9 +33,9 @@
 srv-pki.itway.local ansible_host=172.16.50.3 ansible_user=ansible ansible_ssh_private_key_file=~/.ssh/id_rsa
 ```
 
-#**Commentaires :**
-#- L'utilisation d'un FQDN est recommandée pour les PKI
-#- L’authentification SSH par clé **est déjà en place**, ce qui assure une connexion sécurisée
+**Commentaires :**
+- L'utilisation d'un FQDN est recommandée pour les PKI
+- L’authentification SSH par clé **est déjà en place**, ce qui assure une connexion sécurisée
 ## 3. Variables pour la PKI `roles/pki/vars/main.yml`
 
 ```yaml
@@ -70,10 +70,10 @@ pki_private_dir_mode: "0700"
 pki_key_mode: "0600"
 pki_cert_mode: "0644"
 ```
-#**Commentaires :**
-#- Tous les paramètres techniques sont maintenant externalisés en variables
-#- Ajout de paramètres de sécurité (permissions, algorithmes)
-#- La durée de validité est configurable (10 ans par défaut pour la CA)
+**Commentaires :**
+- Tous les paramètres techniques sont maintenant externalisés en variables
+- Ajout de paramètres de sécurité (permissions, algorithmes)
+- La durée de validité est configurable (10 ans par défaut pour la CA)
 
 ## 4. Configuration OpenSSL 'templates/main.yml`
 
@@ -133,10 +133,10 @@ extendedKeyUsage = clientAuth
     update_cache: yes
   tags: installation
   notify: restart openssl
-  comment: |
-    Installation des paquets de base pour la PKI
-    - openssl : outils cryptographiques
-    - ca-certificates : bundle de certificats racines
+  #comment: |
+  #  Installation des paquets de base pour la PKI
+  #  - openssl : outils cryptographiques
+  #  - ca-certificates : bundle de certificats racines
 
 - name: Créer l'arborescence PKI
   file:
@@ -150,10 +150,10 @@ extendedKeyUsage = clientAuth
     - { path: "{{ pki_ca_dir }}/newcerts", mode: "0755" }
     - { path: "{{ pki_ca_dir }}/private", mode: "{{ pki_private_dir_mode }}" }
   tags: setup
-  comment: |
-    Création de l'arborescence PKI standard
-    - /private a des permissions restrictives (0700 par défaut)
-    - Autres dossiers en 755
+  #comment: |
+# Création de l'arborescence PKI standard
+ #   - /private a des permissions restrictives (0700 par défaut)
+  #  - Autres dossiers en 755
 
 - name: Initialiser les fichiers de base
   file:
@@ -165,11 +165,11 @@ extendedKeyUsage = clientAuth
     - { file: "serial", mode: "0644" }
     - { file: "crlnumber", mode: "0644" }
   tags: setup
-  comment: |
-    Création des fichiers de suivi OpenSSL
-    - index.txt : base de données des certificats
-    - serial : numéro de série incrémental
-    - crlnumber : suivi des révocation
+  #comment: |
+   # Création des fichiers de suivi OpenSSL
+    #- index.txt : base de données des certificats
+    #- serial : numéro de série incrémental
+    #- crlnumber : suivi des révocation
 
 - name: Initialiser le numéro de série
   copy:
@@ -180,9 +180,9 @@ extendedKeyUsage = clientAuth
   vars:
     serial_file: "{{ lookup('stat', pki_ca_dir + '/serial') }}"
   tags: setup
-  comment: |
-    Initialise le fichier serial avec '01' si inexistant
-    Conditionné par when: pour éviter l'écrasement
+  #comment: |
+   # Initialise le fichier serial avec '01' si inexistant
+    #Conditionné par when: pour éviter l'écrasement
 
 - name: Initialiser le numéro de CRL
   copy:
@@ -193,7 +193,7 @@ extendedKeyUsage = clientAuth
   vars:
     crl_file: "{{ lookup('stat', pki_ca_dir + '/crlnumber') }}"
   tags: setup
-  comment: "Même principe que pour le serial mais pour les CRL"
+  #comment: "Même principe que pour le serial mais pour les CRL"
 
 - name: Créer le fichier index.txt vide
   copy:
@@ -204,7 +204,7 @@ extendedKeyUsage = clientAuth
   vars:
     index_file: "{{ lookup('stat', pki_ca_dir + '/' + pki_index_file) }}"
   tags: setup
-  comment: "Fichier vide pour la base de données des certificats"
+  #comment: "Fichier vide pour la base de données des certificats"
 
 - name: Déployer le fichier de configuration OpenSSL
   template:
@@ -214,16 +214,16 @@ extendedKeyUsage = clientAuth
     group: root
     mode: "0644"
   tags: configuration
-  comment: |
-    Déploie le template Jinja2 personnalisé
-    Utilise les variables définies dans vars/main.yml
+  #comment: |
+   # Déploie le template Jinja2 personnalisé
+    #Utilise les variables définies dans vars/main.yml
 
 - name: Générer le fichier aléatoire OpenSSL
   command: openssl rand -out {{ pki_ca_dir }}/private/.rand 4096
   args:
     creates: "{{ pki_ca_dir }}/private/.rand"
   tags: setup
-  comment: "Fichier de graine aléatoire pour la génération de clés"
+  #comment: "Fichier de graine aléatoire pour la génération de clés"
 
 - name: Sécuriser les permissions des dossiers
   file:
@@ -235,7 +235,7 @@ extendedKeyUsage = clientAuth
     - "{{ pki_ca_dir }}"
     - "{{ pki_ca_dir }}/private"
   tags: security
-  comment: "Double vérification des permissions"
+  #comment: "Double vérification des permissions"
 
 # ==================== #
 # PARTIE CERTIFICATS CA #
@@ -250,10 +250,10 @@ extendedKeyUsage = clientAuth
     creates: "{{ pki_ca_dir }}/private/{{ pki_ca_key_name }}"
   notify: Secure CA private key
   tags: certificates
-  comment: |
-    Génère la clé RSA 4096 bits par défaut
-    - creates: évite la regénération si existe déjà
-    - notify: déclenche le handler de sécurisation
+  #comment: |
+   # Génère la clé RSA 4096 bits par défaut
+    #- creates: évite la regénération si existe déjà
+    #- notify: déclenche le handler de sécurisation
 
 - name: Générer le certificat auto-signé de la CA
   command: >
@@ -268,17 +268,17 @@ extendedKeyUsage = clientAuth
   args:
     creates: "{{ pki_ca_dir }}/certs/{{ pki_ca_cert_name }}"
   tags: certificates
-  comment: |
-    Crée le certificat auto-signé (root CA)
-    - Valide 10 ans par défaut (pki_ca_days)
-    - Utilise les extensions v3_ca définies dans le template
+  #comment: |
+   # Crée le certificat auto-signé (root CA)
+    #- Valide 10 ans par défaut (pki_ca_days)
+    #- Utilise les extensions v3_ca définies dans le template
 
 - name: Valider le certificat CA
   command: openssl x509 -in {{ pki_ca_dir }}/certs/{{ pki_ca_cert_name }} -noout -text
   register: cert_check
   changed_when: false
   tags: validation
-  comment: "Vérification technique du certificat généré"
+  #comment: "Vérification technique du certificat généré"
 
 - name: Afficher les infos du certificat
   debug:
@@ -301,7 +301,7 @@ extendedKeyUsage = clientAuth
   args:
     creates: "{{ pki_ca_dir }}/crl/crl.pem"
   tags: crl
-  comment: "Génère la première liste de révocation (vide)"
+  #comment: "Génère la première liste de révocation (vide)"
 
 - name: Vérifier le CRL
   command: openssl crl -in {{ pki_ca_dir }}/crl/crl.pem -noout -text
@@ -319,14 +319,14 @@ extendedKeyUsage = clientAuth
     mode: "{{ pki_key_mode | default('0600') }}"
     owner: root
     group: root
-  comment: "Sécurise la clé privée après sa création"
+  #comment: "Sécurise la clé privée après sa création"
 
 - name: restart openssl
   service:
     name: openssl
     state: restarted
   when: false  # Désactivé car pas de service dédié
-  comment: "Exemple pour d'autres services qui utiliseraient OpenSSL"
+  #comment: "Exemple pour d'autres services qui utiliseraient OpenSSL"
 ```
 ## 6 Playbook principal `playbooks/pki.yml`
 ```

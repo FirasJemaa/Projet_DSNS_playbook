@@ -414,22 +414,40 @@ Ajouter des tâches pour logger les actions importantes
 ```
 
 Commentaires finaux :
-Cette version améliorée inclut :
 
-Toutes les suggestions de sécurité
-
-Une meilleure gestion des permissions
-
-Des validations supplémentaires
-
-Des exemples étendus
-
-Une documentation plus complète
-
-Des bonnes pratiques opérationnelles
-
-Pour le déployer :
+## 9. Pour le déployer
 
 ```
 ansible-playbook -i inventory/hosts playbooks/pki.yml --ask-vault-pass
+```
+
+## 10. Erreurs rencontrées : 
+```
+ERROR! Unexpected Exception, this is probably a bug: 'utf-8' codec can't encode character '\udcc3' in position 346: surrogates not allowed
+```
+Cause probable :
+Un caractère spécial mal encodé (é, à, ç, etc.)
+
+Un fichier YAML enregistré en latin1 ou Windows-1252 au lieu d’UTF-8
+
+Un copier-coller depuis un éditeur non UTF-8
+
+Solution :
+
+Identifier le fichier fautif avec un mode verbeux :
+```
+ansible-playbook -i inventory/hosts.ini playbooks/setup-pki.yaml -vvv
+```
+Vérifier l'encodage du fichier suspect :
+```
+file playbooks/setup-pki.yaml
+```
+S’il n’est pas en UTF-8, le convertir :
+```
+iconv -f ISO-8859-1 -t UTF-8 playbooks/setup-pki.yaml -o playbooks/setup-pki-fixed.yaml
+mv playbooks/setup-pki-fixed.yaml playbooks/setup-pki.yaml
+```
+Corriger tous les fichiers YAML en une commande :
+```
+find . -name "*.yml" -exec bash -c 'iconv -f ISO-8859-1 -t UTF-8 "{}" -o "{}.utf8"
 ```

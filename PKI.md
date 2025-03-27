@@ -327,19 +327,19 @@ extendedKeyUsage = clientAuth
 ```
 # playbooks/pki.yml
 ---
-- name: Déploiement complet du serveur PKI
+- name: Deploiement complet du serveur PKI
   hosts: srv-pki
   become: yes
   gather_facts: yes
   
   pre_tasks:
-    - name: Vérifier que le système est compatible
+    - name: Verifier que le systeme est compatible
       assert:
         that:
           - ansible_os_family == "Debian"
           - ansible_distribution == "Ubuntu"
-          - ansible_distribution_major_version | int >= 10
-        msg: "Ce playbook nécessite Ubuntu supérieur"
+          - ansible_distribution_major_version | int >= 22
+        msg: "Ce playbook nécessite Ubuntu 22 ou supérieur"
 
   roles:
     - srv-pki
@@ -347,7 +347,7 @@ extendedKeyUsage = clientAuth
   post_tasks:
     - name: Afficher les informations du certificat
       debug:
-        msg: "CA déployée avec succès. Certificat valide jusqu'au {{ cert_check.stdout | regex_search('Not After : (.+)') }}"
+        msg: "CA déployee avec succès. Certificat valide jusqu'au {{ cert_check.stdout | regex_search('Not After : (.+)') }}"
       when: cert_check is defined
 ```
 
@@ -393,9 +393,9 @@ Journalisation :
 
 Ajouter des tâches pour logger les actions importantes
 
-## 8 Exemple de signature de certificat serveur (bonus)
+## 8. Exemple de signature de certificat serveur 
 ```
-- name: Générer une CSR pour un serveur
+- name: Generer une CSR pour un serveur
   command: >
     openssl req -new -newkey rsa:2048
     -nodes -keyout {{ pki_ca_dir }}/private/server.key

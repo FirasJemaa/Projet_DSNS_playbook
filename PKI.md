@@ -9,7 +9,7 @@
 ├── playbooks/
 │   └── pki.yml
 └── roles/
-    └── pki/
+    └── srv-pki/
         ├── files/
         ├── handlers/
         │   └── main.yml

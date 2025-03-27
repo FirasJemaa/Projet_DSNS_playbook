@@ -342,7 +342,7 @@ extendedKeyUsage = clientAuth
       assert:
         that:
           - ansible_os_family == "Debian"
-          - ansible_distribution: "Ubuntu"
+          - ansible_distribution == "Ubuntu"
           - ansible_distribution_major_version | int >= 10
         msg: "Ce playbook nécessite Ubuntu supérieur"
 

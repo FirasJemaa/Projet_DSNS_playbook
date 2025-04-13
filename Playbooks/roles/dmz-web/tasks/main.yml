@@ -1,0 +1,95 @@
+########################################
+# roles/dmz-web/tasks/main.yml
+########################################
+
+- name: Installer Nginx
+  apt:
+    name: nginx
+    state: present
+    update_cache: yes
+
+# Appel des tâches liées à la génération et signature du certificat
+- import_tasks: cert.yml
+
+# Déploiement de la configuration Nginx
+- name: Déployer le template principal nginx.conf
+  template:
+    src: "nginx.conf.j2"
+    dest: "/etc/nginx/nginx.conf"
+  notify: reload nginx
+
+- name: Déployer la configuration du site par défaut (HTTPS)
+  template:
+    src: "default.conf.j2"
+    dest: "/etc/nginx/sites-available/default"
+  notify: reload nginx
+
+- name: Déployer les paramètres SSL (ssl_params.conf)
+  template:
+    src: "ssl_params.conf.j2"
+    dest: "/etc/nginx/snippets/ssl_params.conf"
+  notify: reload nginx
+
+# Vérifie que le certificat SSL est bien présent avant de tester nginx
+- name: Vérifier si le certificat SSL est bien présent
+  stat:
+    path: "{{ dmz_web_ssl_dir }}/{{ dmz_web_crt_filename }}"
+  register: crt_file_check
+
+# Vérifie la validité de la configuration nginx
+- name: Vérifier que la configuration Nginx est correcte
+  command: nginx -t
+  register: nginx_config_test
+  failed_when: "'test failed' in nginx_config_test.stderr or nginx_config_test.rc != 0"
+  changed_when: false
+  when: crt_file_check.stat.exists
+
+# Démarre ou recharge nginx selon son état, via un handler Ansible
+- name: Forcer le rechargement de Nginx si la conf est OK
+  meta: flush_handlers
+  when:
+    - crt_file_check.stat.exists
+    - "'test is successful' in nginx_config_test.stdout or 'syntax is ok' in nginx_config_test.stdout"
+
+# Assure que le répertoire web existe et appartient à ansible
+- name: Créer le répertoire web root s’il n’existe pas
+  file:
+    path: "{{ dmz_web_root }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+
+# Déploie une page index.html simple
+- name: Déployer une page index.html de test
+  copy:
+    dest: "{{ dmz_web_root }}/index.html"
+    content: "<h1>Serveur {{ dmz_web_fqdn }} opérationnel </h1>"
+    owner: www-data
+    group: www-data
+    mode: "0644"
+
+# Vérifie que la page HTTPS répond correctement (healthcheck)
+- name: Vérifier la disponibilité HTTPS via IP (avec Host header)
+  uri:
+    url: "https://{{ ansible_host }}"
+    headers:
+      Host: "{{ dmz_web_fqdn }}"
+    validate_certs: no
+    return_content: no
+    status_code: 200
+  register: https_health
+  ignore_errors: true
+
+# A la suite du fichier yaml tasks -> main.yml
+- name: Afficher le résultat du healthcheck
+  debug:
+    msg: >-
+      ✔️ Accès HTTPS opérationnel sur {{ dmz_web_fqdn }}
+      (Status: {{ https_health.status | default('inconnu') }})
+  when: https_health.status is defined and https_health.status == 200
+
+- name: Alerte si le serveur HTTPS ne répond pas
+  debug:
+    msg: "❌ Problème d’accès HTTPS sur {{ dmz_web_fqdn }} — Code : {{ https_health.status | default('aucun') }}"
+  when: https_health.status is not defined or https_health.status != 200

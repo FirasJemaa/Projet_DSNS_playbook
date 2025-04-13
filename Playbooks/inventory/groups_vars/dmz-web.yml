@@ -1,0 +1,29 @@
+########################################
+# inventory/group_vars/dmz-web.yml
+########################################
+
+# Définit le FQDN, les chemins de certificat, les DN pour la CSR, et la config PKI
+# Ces variables seront injectées automatiquement par Ansible pour ce groupe
+dmz_web_fqdn: "dmz-web.itway.fr"
+dmz_web_ssl_dir: "/etc/nginx/ssl"
+dmz_web_key_filename: "dmz-web.key"
+dmz_web_csr_filename: "dmz-web.csr"
+dmz_web_crt_filename: "dmz-web.crt"
+dmz_web_ca_filename: "ca.crt"
+
+# DN (Distinguished Name) pour la CSR
+dmz_web_country: "FR"
+dmz_web_state: "Ile-de-France"
+dmz_web_org: "ITWay"
+dmz_web_ou: "DMZ"
+
+# PKI side
+srv_pki_host: "srv-pki.itway.local"     # nom d'hôte dans hosts.ini
+pki_openssl_conf: "/etc/ssl/openssl.cnf"
+pki_dir: "/etc/pki"
+
+# Paramètres SSL sur Nginx
+dmz_web_ssl_protocols: "TLSv1.2 TLSv1.3"
+dmz_web_ssl_ciphers: "HIGH:!aNULL:!MD5:!ADH:!SHA1:!DES:!RC4"
+dmz_web_root: "/var/www/html"
+dmz_web_index: "index.html"

@@ -19,6 +19,7 @@ Chaque machine de la DMZ doit être configurée avec une adresse IP statique pou
 ### 3. Modification du fichier de configuration réseau
 **Ouvrir le fichier de configuration réseau** et activer l’IP statique, comme dans l'exemple ci-dessous :
 ```sh
+auto eth0
 iface eth0 inet static
 	address 10.10.10.2         # Adresse IP de la machine
 	netmask 255.255.255.240    # Masque de sous-réseau

@@ -118,7 +118,7 @@ usermod -aG sudo ansible
 ```
 
 ### Désactiver l’authentification root par mot de passe
-Dans c  dé-commenter la ligne suivante et la modifier pour **interdire complètement** la connexion SSH directe de root (même via une clé) :
+Dans etc/ssh/ssh_config dé-commenter la ligne suivante et la modifier pour **interdire complètement** la connexion SSH directe de root (même via une clé) :
 ```
 PermitRootLogin no
 ```

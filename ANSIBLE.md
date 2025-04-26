@@ -106,6 +106,7 @@ Pour garder une organisation claire, j'utilise la hiérarchie suivante :
 │       ├── srv-ads01.yml
 │       ├── srv-pki.yml
 │       ├── srv-mail.yml
+│       ├── srv-intranet.yml
 │       └── it-grafana-prometheus.yml
 ├── roles/
 │   ├── dmz-smtp/
@@ -143,6 +144,11 @@ Pour garder une organisation claire, j'utilise la hiérarchie suivante :
 │   │   ├── handlers/
 │   │   ├── templates/
 │   │   └── files/
+│   ├── srv-intranet/ 
+│   │   ├── tasks/
+│   │   ├── handlers/
+│   │   ├── templates/
+│   │   └── files/
 │   └── it-grafana/
 │       ├── tasks/
 │       ├── handlers/
@@ -156,6 +162,7 @@ Pour garder une organisation claire, j'utilise la hiérarchie suivante :
     ├── setup-ad.yml
     ├── setup-pki.yml
     ├── setup-mail.yml
+    ├── setup-intranet.yml
     └── setup-grafana-prometheus.yml
 ```
 

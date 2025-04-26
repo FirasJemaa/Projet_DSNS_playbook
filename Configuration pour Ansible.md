@@ -88,7 +88,8 @@ Additional directories to make persistent that are not included in the image VOL
 ### 2. Installation du serveur SSH
 Depuis la console du conteneur entrer les commandes suivantes pour installer le service SSH (fichier binaire `sshd`) et les dépendances :
 ```sh
-apt update 
+apt update
+apt upgrade
 apt install openssh-server -y
 ```
 ### 3. Vérifier (et démarrer) le service SSH

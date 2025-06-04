@@ -1,0 +1,17 @@
+#roles/srv-mail/tasks/apache_https.yml 
+
+- name: Activer le module SSL d'Apache
+  command: a2enmod ssl
+  notify: restart apache
+
+- name: Déployer la configuration Apache HTTPS pour PostfixAdmin
+  template:
+    src: postfixadmin-ssl.conf.j2
+    dest: /etc/apache2/sites-available/postfixadmin-ssl.conf
+  notify: restart apache
+
+- name: Activer le site postfixadmin SSL
+  command: a2ensite postfixadmin-ssl.conf
+  args:
+    creates: /etc/apache2/sites-enabled/postfixadmin-ssl.conf
+  notify: restart apache

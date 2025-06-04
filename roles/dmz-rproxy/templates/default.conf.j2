@@ -1,0 +1,35 @@
+# Redirection HTTP → HTTPS
+server {
+    listen 80;
+    listen [::]:80;
+    server_name itway.fr www.itway.fr;
+    return 301 https://$host$request_uri;
+}
+
+# Bloc principal HTTPS
+upstream web_front {
+    server 10.10.10.2:443;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name itway.fr www.itway.fr;
+
+    ssl_certificate           {{ rproxy_ssl_dir }}/{{ rproxy_fullchain_filename }};
+    ssl_certificate_key       {{ rproxy_ssl_dir }}/{{ rproxy_key_filename }};
+    ssl_trusted_certificate   {{ rproxy_ssl_dir }}/{{ rproxy_ca_filename }};
+    include {{ rproxy_nginx_snippet_dir }}/ssl_params.conf;
+    include {{ rproxy_nginx_snippet_dir }}/security_headers.conf;
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    location / {
+        proxy_pass https://web_front;
+        proxy_ssl_verify off;   # backend interne (cert non public)
+        proxy_read_timeout 30s;
+    }
+}

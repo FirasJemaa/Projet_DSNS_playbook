@@ -1,0 +1,14 @@
+#roles/dmz-smtp/templates/master.cf.j2 
+
+smtp      inet  n  -  y  -  -  smtpd
+  -o smtpd_milters=unix:/var/spool/postfix/var/run/spamass-milter.sock
+
+submission inet n - y - - smtpd
+  -o smtpd_tls_security_level=encrypt
+  -o smtpd_sasl_auth_enable=yes
+  -o smtpd_milters=unix:/var/spool/postfix/var/run/spamass-milter.sock
+
+smtps     inet n - y - - smtpd
+  -o smtpd_tls_wrappermode=yes
+  -o smtpd_sasl_auth_enable=yes
+  -o smtpd_milters=unix:/var/spool/postfix/var/run/spamass-milter.sock

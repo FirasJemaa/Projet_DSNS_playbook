@@ -1,0 +1,32 @@
+# HTTP → HTTPS
+server {
+    listen 80;
+    listen [::]:80;
+    server_name webmail.itway.fr;
+    return 301 https://$host$request_uri;
+}
+
+upstream webmail_front {
+    server 10.10.10.3:443;   # Roundcube / Horde ?
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name webmail.itway.fr;
+
+    ssl_certificate {{ rproxy_ssl_dir }}/{{ webmail_fullchain_filename }};
+    ssl_certificate_key {{ rproxy_ssl_dir }}/{{ webmail_key_filename }};
+    ssl_trusted_certificate   {{ rproxy_ssl_dir }}/{{ rproxy_ca_filename }};
+    include {{ rproxy_nginx_snippet_dir }}/ssl_params.conf;
+    include {{ rproxy_nginx_snippet_dir }}/security_headers.conf;
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    location / {
+        proxy_pass https://webmail_front;
+        proxy_ssl_verify off;
+    }
+}

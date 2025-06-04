@@ -1,0 +1,23 @@
+//
+// named.conf.local
+//
+
+// Vue publique (zone exposé)
+zone "itway.fr" {
+    type master;
+    file "/etc/bind/db.itway.fr";
+    allow-transfer { none; };
+};
+
+//Interne uniquement (zone privé)
+zone "int.itway.fr" {
+    type master;
+    file "/etc/bind/db.int.itway.fr";
+    allow-transfer { none; };
+};
+
+zone "10.10.10.in-addr.arpa" {
+    type master;
+    file "/etc/bind/db.10.10.10.rev";
+    allow-transfer { none; };
+};

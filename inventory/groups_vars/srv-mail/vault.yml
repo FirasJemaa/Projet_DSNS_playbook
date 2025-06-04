@@ -1,0 +1,20 @@
+# inventory/group_vars/srv-mail/vault.yml
+
+postfixadmin_db_user: postfixadmin
+postfixadmin_db_password: "******"
+
+roundcube_db_user: roundcube
+roundcube_db_password: "******"
+
+dovecot_sql_user: "{{ roundcube_db_user }}"
+dovecot_sql_password: "{{ roundcube_db_password }}"
+
+postfixadmin_admin_email: admin@itway.fr
+postfixadmin_setup_password_hash: '*******'
+
+setup_password_plain: "******"
+
+dovecot_ldap_uri: "ldap://172.16.50.2"
+dovecot_ldap_bind_dn: "CN=Username,OU=Utilisateurs,DC=itway,DC=local"
+dovecot_ldap_bind_pw: "******"
+dovecot_ldap_base: "OU=Utilisateurs,DC=itway,DC=local"

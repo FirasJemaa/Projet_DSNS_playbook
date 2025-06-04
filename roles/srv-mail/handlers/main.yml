@@ -1,0 +1,24 @@
+# roles/srv-mail/handlers/main.yml 
+- name: restart postfix
+  shell: service postfix restart
+  args:
+    executable: /bin/bash
+
+- name: restart dovecot
+  shell: dovecot reload
+  args:
+    executable: /bin/bash
+
+- name: restart apache
+  shell: service apache2 restart
+  args:
+    executable: /bin/bash
+
+- name: restart mariadb
+  shell: service mariadb restart
+  args:
+    executable: /bin/bash
+
+
+
+    

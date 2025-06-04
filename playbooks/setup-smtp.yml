@@ -1,0 +1,5 @@
+- name: Déployer SMTP Relay + Cert SSL
+  hosts: dmz-smtp
+  become: yes
+  roles:
+    - dmz-smtp

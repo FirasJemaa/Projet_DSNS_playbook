@@ -1,0 +1,33 @@
+smtp      inet  n       -       y       -       -       smtpd
+  -o smtpd_tls_security_level=may
+
+smtps     inet  n       -       y       -       -       smtpd
+  -o smtpd_tls_wrappermode=yes
+  -o smtpd_sasl_auth_enable=yes
+  -o smtpd_tls_security_level=encrypt
+
+submission inet n       -       y       -       -       smtpd
+  -o smtpd_tls_security_level=encrypt
+  -o smtpd_sasl_auth_enable=yes
+
+roles/srv-mail/templates/postfixadmin-ssl.conf.j2 
+<VirtualHost *:443>
+    ServerName srv-mail.itway.local
+
+    DocumentRoot /usr/share/postfixadmin
+    Alias /postfixadmin /usr/share/postfixadmin/public
+
+    SSLEngine on
+    SSLCertificateFile    /etc/postfix/ssl/srv-mail.crt
+    SSLCertificateKeyFile /etc/postfix/ssl/srv-mail.key
+    SSLCACertificateFile  /etc/postfix/ssl/ca.crt
+
+    <Directory /usr/share/postfixadmin/public>
+        Options FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    ErrorLog ${APACHE_LOG_DIR}/postfixadmin_error.log
+    CustomLog ${APACHE_LOG_DIR}/postfixadmin_access.log combined
+</VirtualHost>

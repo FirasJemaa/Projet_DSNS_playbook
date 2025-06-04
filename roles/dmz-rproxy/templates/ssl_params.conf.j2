@@ -1,0 +1,13 @@
+ssl_protocols {{ rproxy_ssl_protocols }};
+ssl_prefer_server_ciphers off;
+
+ssl_ciphers {{ rproxy_ssl_ciphers }};
+
+# OCSP stapling des que je finis
+ssl_stapling off;
+ssl_stapling_verify off;
+
+# HSTS
+{% if rproxy_hsts_max_age|int > 0 %}
+add_header Strict-Transport-Security "max-age={{ rproxy_hsts_max_age }}; includeSubDomains" always;
+{% endif %}

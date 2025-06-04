@@ -1,0 +1,5 @@
+- name: Déploiement du serveur DNS en DMZ
+  hosts: dmz-dns
+  become: yes
+  roles:
+    - dmz-dns

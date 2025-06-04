@@ -1,0 +1,23 @@
+#roles/dmz-smtp/templates/rules.v4.j2 
+*filter
+:INPUT DROP [0:0]
+:FORWARD DROP [0:0]
+:OUTPUT ACCEPT [0:0]
+
+# États établis
+-A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
+# SSH seulement depuis VLAN admin (exemple 172.16.0.0/24)
+-A INPUT -p tcp -s 172.16.0.0/24 --dport 22 -j ACCEPT
+
+# SMTP + SMTPS + SUBMISSION
+-A INPUT -p tcp --dport 25  -j ACCEPT
+-A INPUT -p tcp --dport 465 -j ACCEPT
+-A INPUT -p tcp --dport 587 -j ACCEPT
+
+# HTTPS Roundcube (appelé par le reverse-proxy)
+-A INPUT -p tcp --dport 443 -j ACCEPT
+
+# ICMP optionnel
+-A INPUT -p icmp -j ACCEPT
+COMMIT

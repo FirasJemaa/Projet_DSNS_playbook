@@ -1,0 +1,157 @@
+# roles/dmz-rproxy/tasks/cert.yml
+- name: "Création du dossier SSL"
+  file:
+    path: "{{ rproxy_ssl_dir }}"
+    state: directory
+    mode: "0755"
+
+# 1. itway.fr 
+- block:
+    - name: "[ITWAY] Générer clé privée si absente"
+      command: "openssl genrsa -out {{ rproxy_ssl_dir }}/{{ rproxy_key_filename }} 4096"
+      #args: { creates: "{{ rproxy_ssl_dir }}/{{ rproxy_key_filename }}" }
+
+    - name: "[ITWAY] Générer CSR si absente"
+      command: >
+        openssl req -new -key {{ rproxy_ssl_dir }}/{{ rproxy_key_filename }}
+        -out {{ rproxy_ssl_dir }}/{{ rproxy_csr_filename }}
+        -subj "/C={{ rproxy_country }}/ST={{ rproxy_state }}/O={{ rproxy_org }}/OU={{ rproxy_ou }}/CN={{ rproxy_fqdn }}"
+      #args: { creates: "{{ rproxy_ssl_dir }}/{{ rproxy_csr_filename }}" }
+
+    - name: "[ITWAY] fetch CSR → contrôleur"
+      fetch:
+        src: "{{ rproxy_ssl_dir }}/{{ rproxy_csr_filename }}"
+        dest: "files/dmz-rproxy/{{ rproxy_csr_filename }}"
+        flat: yes
+
+    - name: "[ITWAY] Copier CSR sur SRV-PKI"
+      copy:
+        src: "files/dmz-rproxy/{{ rproxy_csr_filename }}"
+        dest: "{{ pki_dir }}/reqs/{{ rproxy_csr_filename }}"
+      delegate_to: "{{ srv_pki_host }}"
+      become: yes
+
+    - name: "[ITWAY] Signer CSR"
+      command: >
+        openssl ca -config {{ pki_openssl_conf }} -extensions v3_server
+        -in {{ pki_dir }}/reqs/{{ rproxy_csr_filename }}
+        -out {{ pki_dir }}/certs/{{ rproxy_crt_filename }} -batch
+      #args: { creates: "{{ pki_dir }}/certs/{{ rproxy_crt_filename }}" }
+      become: yes
+      delegate_to: "{{ srv_pki_host }}"
+      tags: regenerate_cert
+
+    - name: "[ITWAY] fetch CRT + CA"
+      fetch:
+        src: "{{ item }}"
+        dest: "files/dmz-rproxy/{{ item | basename }}"
+        flat: yes
+      loop:
+        - "{{ pki_dir }}/certs/{{ rproxy_crt_filename }}"
+        - "{{ pki_dir }}/certs/{{ rproxy_ca_filename }}"
+      delegate_to: "{{ srv_pki_host }}"
+      become: yes
+
+    - name: "[ITWAY] Déployer CRT + CA"
+      copy:
+        src: "files/dmz-rproxy/{{ item }}"
+        dest: "{{ rproxy_ssl_dir }}/{{ item }}"
+        mode: "0644"
+      loop:
+        - "{{ rproxy_crt_filename }}"
+        - "ca.crt"
+
+    - name: "[ITWAY] (Re)générer fullchain.crt"
+      shell: >
+        cat {{ rproxy_ssl_dir }}/{{ rproxy_crt_filename }} {{ rproxy_ssl_dir }}/{{ rproxy_ca_filename }} > {{ rproxy_ssl_dir }}/{{ rproxy_fullchain_filename }}
+      #args:
+       # creates: "{{ rproxy_ssl_dir }}/{{ rproxy_fullchain_filename }}"
+
+  rescue:
+    - debug:
+        msg: "Erreur sur la chaîne itway.fr"
+
+
+# 2. webmail.itway.fr  
+- block:
+    - name: "[WEBMAIL] Générer clé privée"
+      command: "openssl genrsa -out {{ rproxy_ssl_dir }}/{{ webmail_key_filename }} 4096"
+      #args: { creates: "{{ rproxy_ssl_dir }}/{{ webmail_key_filename }}" }
+
+    - name: "[WEBMAIL] Générer CSR"
+      command: >
+        openssl req -new -key {{ rproxy_ssl_dir }}/{{ webmail_key_filename }}
+        -out {{ rproxy_ssl_dir }}/{{ webmail_csr_filename }}
+        -subj "/C=FR/ST={{ rproxy_state }}/O={{ rproxy_org }}/OU=DMZ-RPROXY/CN={{ webmail_fqdn }}"
+      #args: { creates: "{{ rproxy_ssl_dir }}/{{ webmail_csr_filename }}" }
+
+    - name: "[WEBMAIL] fetch CSR → contrôleur"
+      fetch:
+        src: "{{ rproxy_ssl_dir }}/{{ webmail_csr_filename }}"
+        dest: "files/dmz-rproxy/{{ webmail_csr_filename }}"
+        flat: yes
+
+    - name: "[WEBMAIL] Copier CSR sur SRV-PKI"
+      copy:
+        src: "files/dmz-rproxy/{{ webmail_csr_filename }}"
+        dest: "{{ pki_dir }}/reqs/{{ webmail_csr_filename }}"
+      delegate_to: "{{ srv_pki_host }}"
+      become: yes
+
+    - name: "[WEBMAIL] Signer CSR"
+      command: >
+        openssl ca -config {{ pki_openssl_conf }} -extensions v3_server
+        -in {{ pki_dir }}/reqs/{{ webmail_csr_filename }}
+        -out {{ pki_dir }}/certs/{{ webmail_crt_filename }} -batch
+      #args: { creates: "{{ pki_dir }}/certs/{{ webmail_crt_filename }}" }
+      delegate_to: "{{ srv_pki_host }}"
+      become: yes
+
+    - name: "[WEBMAIL] Générer fullchain.crt côté PKI"
+      shell: >
+        cat {{ pki_dir }}/certs/{{ webmail_crt_filename }} {{ pki_dir }}/certs/{{ webmail_ca_filename }}
+        > {{ pki_dir }}/certs/{{ webmail_fullchain_filename }}
+      #args:
+       # creates: "{{ pki_dir }}/certs/{{ webmail_fullchain_filename }}"
+      delegate_to: "{{ srv_pki_host }}"
+      become: yes
+
+
+    - name: "[WEBMAIL] fetch CRT"
+      fetch:
+        src: "{{ pki_dir }}/certs/{{ webmail_crt_filename }}"
+        dest: "files/dmz-rproxy/{{ webmail_crt_filename }}"
+        flat: yes
+      delegate_to: "{{ srv_pki_host }}"
+      become: yes
+
+    - name: "[WEBMAIL] fetch fullchain.crt"
+      fetch:
+        src: "{{ pki_dir }}/certs/{{ webmail_fullchain_filename }}"
+        dest: "files/dmz-rproxy/{{ webmail_fullchain_filename }}"
+        flat: yes
+      delegate_to: "{{ srv_pki_host }}"
+      become: yes
+
+
+    - name: "[WEBMAIL] Déployer CRT + CA"
+      copy:
+        src: "files/dmz-rproxy/{{ item }}"
+        dest: "{{ rproxy_ssl_dir }}/{{ item }}"
+        mode: "0644"
+      loop:
+        - "{{ webmail_crt_filename }}"
+        - "{{ webmail_ca_filename }}"
+        - "{{ webmail_fullchain_filename }}"
+
+    - name: "[WEBMAIL] Générer fullchain pour webmail"
+      shell: >
+        cat {{ rproxy_ssl_dir }}/{{ webmail_crt_filename }}
+            {{ rproxy_ssl_dir }}/{{ webmail_ca_filename }}
+            > {{ rproxy_ssl_dir }}/{{ webmail_fullchain_filename }}
+      args:
+        creates: "{{ rproxy_ssl_dir }}/{{ webmail_fullchain_filename }}"
+
+  rescue:
+    - debug:
+        msg: "Erreur sur la chaîne webmail.itway.fr"

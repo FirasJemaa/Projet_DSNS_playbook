@@ -1,0 +1,39 @@
+//roles/dmz-smtp/templates/roundcube-config.inc.php.j2 
+<?php
+
+$config['db_dsnw'] = 'mysql://{{ roundcube_db_user }}:{{ roundcube_db_pass }}@tcp(srv-mail.itway.local:3306)/roundcube';
+$config['product_name'] = 'ITWay Webmail';
+$config['language'] = 'fr_FR';
+
+$config['log_driver'] = 'file';
+$config['log_dir'] = '/var/log/roundcube/';
+
+$config['default_host'] = 'tls://srv-mail.itway.local';
+$config['default_port'] = 993;
+
+$config['smtp_host'] = 'tls://srv-mail.itway.local';
+$config['smtp_port'] = 587;
+
+$config['smtp_user'] = '%u';
+$config['smtp_pass'] = '%p';
+
+$config['imap_conn_options'] = [
+  'ssl' => [
+    'verify_peer'       => true,
+    'verify_peer_name'  => true,
+    'cafile'            => '/etc/ssl/certs/itway-ca.crt',
+  ],
+];
+
+$config['smtp_conn_options'] = $config['imap_conn_options'];
+
+$config['enable_installer'] = false;
+$config['log_logins'] = true;
+$config['debug_level'] = 1;
+$config['charset'] = 'UTF-8';
+
+$config['plugins'] = [];
+
+$config['des_key'] = '{{ roundcube_secret_key }}';
+
+?>

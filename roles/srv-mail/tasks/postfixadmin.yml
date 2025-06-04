@@ -1,0 +1,62 @@
+#roles/srv-mail/tasks/postfixadmin.yml 
+- name: Créer le répertoire cache pour templates_c
+  file:
+    path: /var/cache/postfixadmin/templates_c
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: '0755'
+
+- name: Supprimer lien templates_c s'il existe
+  file:
+    path: /usr/share/postfixadmin/templates_c
+    state: absent
+  ignore_errors: yes
+
+- name: Créer le lien symbolique vers /var/cache/postfixadmin/templates_c
+  file:
+    src: /var/cache/postfixadmin/templates_c
+    dest: /usr/share/postfixadmin/templates_c
+    state: link
+
+- name: Créer l'utilisateur SQL postfixadmin
+  community.mysql.mysql_user:
+    name: "{{ postfixadmin_db_user }}"
+    password: "{{ postfixadmin_db_password }}"
+    priv: "postfixadmin.*:ALL"
+    host: "localhost"
+    state: present
+    login_unix_socket: /run/mysqld/mysqld.sock
+
+- name: Créer la base postfixadmin
+  community.mysql.mysql_db:
+    name: postfixadmin
+    state: present
+    login_unix_socket: /run/mysqld/mysqld.sock
+
+- name: Déployer config.local.php
+  copy:
+    dest: /etc/postfixadmin/config.local.php
+    content: |
+      <?php
+      $CONF['configured'] = true;
+      $CONF['database_type'] = 'mysqli';
+      $CONF['database_host'] = 'localhost';
+      $CONF['database_user'] = '{{ postfixadmin_db_user }}';
+      $CONF['database_password'] = '{{ postfixadmin_db_password }}';
+      $CONF['database_name'] = 'postfixadmin';
+      $CONF['default_language'] = 'fr';
+      $CONF['encrypt'] = 'dovecot:SHA512-CRYPT';
+      $CONF['dovecotpw'] = '/usr/bin/doveadm pw';
+      $CONF['domain_path'] = 'YES';
+      $CONF['domain_in_mailbox'] = 'YES';
+      $CONF['admin_email'] = 'admin@itway.fr';
+
+#Risque de ne pas marché il faut générer avec PostfixAdmin avant
+- name: Ajouter le domaine itway.fr si absent
+  community.mysql.mysql_query:
+    login_unix_socket: /run/mysqld/mysqld.sock
+    login_db: postfixadmin
+    query: >
+      INSERT IGNORE INTO domain (domain, description, active)
+      VALUES ('itway.fr', 'Domaine principal', 1);

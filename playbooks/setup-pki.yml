@@ -1,0 +1,12 @@
+- name: Déploiement complet du serveur PKI
+  hosts: srv-pki
+  become: yes
+
+  roles:
+    - srv-pki
+
+  post_tasks:
+    - name: Résumé - Informations du certificat CA
+      debug:
+        msg: "CA installée avec succès ! Expire le : {{ cert_check.stdout | regex_search('Not After : (.+)') }}"
+      when: cert_check is defined

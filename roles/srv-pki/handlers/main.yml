@@ -1,0 +1,15 @@
+# roles/srv-pki/handlers/main.yml 
+- name: Secure CA private key
+  file:
+    path: "{{ pki_ca_dir }}/private/{{ pki_ca_key_name }}"
+    mode: "{{ pki_key_mode | default('0600') }}"
+    owner: ansible
+    group: ansible
+  # Securise la cle privee apres sa creation
+
+- name: restart openssl
+  service:
+    name: openssl
+    state: restarted
+  when: false  # Pas utilise ici, pas de service openssl actif
+  # Exemple pour d'autres services qui utiliseraient OpenSSL

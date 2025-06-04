@@ -1,0 +1,36 @@
+# Premier bloc serveur : écoute sur HTTP (port 80) uniquement pour rediriger vers HTTPS
+server {
+    listen 80 default_server;               # Écoute en IPv4 sur le port 80, défini comme site par défaut
+    listen [::]:80 default_server;          # Écoute en IPv6 également
+
+    server_name {{ dmz_web_fqdn }};         # Nom d’hôte attendu (ex: dmz-web.itway.fr)
+
+    # Redirection automatique de toutes les requêtes HTTP vers HTTPS
+    return 301 https://$host$request_uri;   # Redirige de manière permanente vers l’équivalent HTTPS
+}
+# Ce bloc permet de **forcer le passage en HTTPS** dès qu’un utilisateur accède au site via HTTP.
+
+# Bloc principal HTTPS
+server {
+    listen 443 ssl http2 default_server;       # Écoute sur le port 443 avec SSL/TLS activé
+    listen [::]:443 ssl http2 default_server;  # Idem pour IPv6
+
+    server_name {{ dmz_web_fqdn }};            # Nom d’hôte pour lequel ce vhost s'applique
+
+    # Chemins vers les certificats TLS
+    ssl_certificate     {{ dmz_web_ssl_dir }}/{{ dmz_web_crt_filename }};         # Certificat signé
+    ssl_certificate_key {{ dmz_web_ssl_dir }}/{{ dmz_web_key_filename }};         # Clé privée associée
+    ssl_trusted_certificate {{ dmz_web_ssl_dir }}/{{ dmz_web_ca_filename }};      # Certificat de la CA (chaîne complète)
+
+    # Chargement de paramètres SSL durcis (ciphers, protocoles, etc.)
+    include /etc/nginx/snippets/ssl_params.conf;
+
+    # Répertoire racine du site web (ex: /var/www/html)
+    root {{ dmz_web_root }};
+    index {{ dmz_web_index }};                 # Fichier à servir par défaut (ex: index.html)
+
+    # Bloc de gestion des requêtes sur la racine /
+    location / {
+        try_files $uri $uri/ =404;             # Essaie d’afficher le fichier demandé, sinon renvoie une erreur 404
+    }
+}

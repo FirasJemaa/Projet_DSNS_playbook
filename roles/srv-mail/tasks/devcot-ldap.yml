@@ -1,0 +1,31 @@
+# roles/srv-mail/tasks/dovecot-ldap.yml 
+- name: Déployer la configuration LDAP de Dovecot
+  template:
+    src: dovecot-ldap.conf.ext.j2
+    dest: /etc/dovecot/dovecot-ldap.conf.ext
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart dovecot
+
+- name: Activer auth-ldap.conf.ext dans 10-auth.conf
+  lineinfile:
+    path: /etc/dovecot/conf.d/10-auth.conf
+    regexp: '^#!?include auth-ldap.conf.ext'
+    line: '!include auth-ldap.conf.ext'
+    state: present
+
+- name: Désactiver auth-sql.conf.ext dans 10-auth.conf
+  lineinfile:
+    path: /etc/dovecot/conf.d/10-auth.conf
+    regexp: '^!include auth-sql.conf.ext'
+    line: '#!include auth-sql.conf.ext'
+    state: present
+
+- name: Assurer les bons paramètres d’authentification
+  blockinfile:
+    path: /etc/dovecot/conf.d/10-auth.conf
+    block: |
+      disable_plaintext_auth = yes
+      auth_mechanisms = plain login
+      

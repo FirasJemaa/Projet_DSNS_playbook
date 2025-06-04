@@ -1,0 +1,44 @@
+# roles/dmz-smtp/templates/main.cf.j2 
+
+myhostname = {{ smtp_fqdn }}
+mydomain   = {{ smtp_domain }}
+myorigin   = $mydomain
+
+inet_interfaces = all
+
+# Pas de distribution locale
+mydestination = localhost
+
+# Domaines pour lesquels on est MX
+relay_domains = $mydomain
+transport_maps = hash:/etc/postfix/transport
+
+# Anti-relay
+mynetworks = {{ smtp_mynetworks }}
+smtpd_relay_restrictions =
+    permit_mynetworks,
+    permit_sasl_authenticated,
+    reject_unauth_destination
+
+# TLS serveur (entrants)
+smtpd_tls_cert_file       = {{ smtp_ssl_dir }}/{{ smtp_crt_filename }}
+smtpd_tls_key_file        = {{ smtp_ssl_dir }}/{{ smtp_key_filename }}
+smtpd_tls_CAfile          = {{ smtp_ssl_dir }}/{{ smtp_ca_filename }}
+smtpd_tls_security_level  = may        
+
+# TLS client (sortants vers SRV-MAIL)
+smtp_tls_security_level   = encrypt
+smtp_tls_CAfile           = {{ smtp_ssl_dir }}/{{ smtp_ca_filename }}
+
+# SASL (pour submission/smtps)
+smtpd_sasl_auth_enable = yes
+smtpd_sasl_local_domain = $mydomain
+broken_sasl_auth_clients = yes
+
+# Intégration SpamAssassin via milter
+smtpd_milters = unix:/var/spool/postfix/var/run/spamass-milter.sock
+non_smtpd_milters = = unix:/var/spool/postfix/var/run/spamass-milter.sock
+
+# Divers durcissements
+disable_vrfy_command = yes
+smtpd_helo_required  = yes

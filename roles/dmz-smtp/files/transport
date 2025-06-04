@@ -1,0 +1,3 @@
+#roles/dmz-smtp/files/transport 
+# transport_maps – tout le domaine va vers le serveur mail interne
+itway.fr   smtp:[srv-mail.itway.local]:25

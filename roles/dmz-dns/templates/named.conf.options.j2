@@ -1,0 +1,25 @@
+options {
+    directory "/var/cache/bind";
+
+    // Forward DNS non gérés vers l’extérieur
+    forwarders { 8.8.8.8; 8.8.4.4; };
+
+    // Autoriser la récursion UNIQUEMENT à nos réseaux internes :
+    allow-recursion {
+        10.10.10.0/28;      // DMZ
+        172.16.10.0/27;     // IT           
+        172.16.50.0/29;     // SRV         
+        //172.16.60.0/29;   // CORE         
+        172.16.85.0/27;     // NET-SRV   
+        10.11.11.0/30;      // STORM-NET 
+        192.168.20.0/28;    // VLAN 20   
+        192.168.30.0/28;    // VLAN 30   
+        192.168.40.0/26;    // VLAN 40   
+    };
+
+    recursion yes;               // mais uniquement pour les réseaux listés
+    allow-transfer { none; };    // bloque les AXFR publics
+    dnssec-validation auto;
+    listen-on { any; };
+    listen-on-v6 { any; };
+};

@@ -1,0 +1,9 @@
+#inventory/group_vars/dmz-smtp/vault.yml
+
+# (pour tests Roundcube)
+roundcube_test_user: "test@itway.fr"
+roundcube_test_pass: "*****"
+
+roundcube_db_user: "roundcube"
+roundcube_db_pass: "roundcube123"
+roundcube_secret_key: "*********"

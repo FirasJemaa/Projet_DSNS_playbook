@@ -1,0 +1,8 @@
+########################################
+# roles/dmz-web/vars/main.yml
+########################################
+
+# Définit les ports et le dossier de conf Nginx utilisé
+dmz_web_port_http: 80
+dmz_web_port_https: 443
+dmz_web_nginx_conf_dir: "/etc/nginx/sites-available"

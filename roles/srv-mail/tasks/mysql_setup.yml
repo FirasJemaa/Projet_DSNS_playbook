@@ -1,0 +1,57 @@
+# roles/srv-mail/tasks/mysql_setup.yml 
+# Installation + préparation MariaDB pour Roundcube
+
+- name: Installer MariaDB Server et client
+  apt:
+    name:
+      - mariadb-server
+      - mariadb-client
+    state: present
+    update_cache: yes
+
+- name: Installer dépendance Python pour gestion MySQL
+  apt:
+    name: python3-pymysql
+    state: present
+
+- name: Stopper MariaDB si actif dans un conteneur
+  shell: "mysqladmin shutdown || true"
+  ignore_errors: true
+  become: true
+
+- name: Corriger les permissions de /var/lib/mysql
+  file:
+    path: /var/lib/mysql
+    owner: mysql
+    group: mysql
+    mode: '0755'
+    recurse: yes
+
+# Démarrage MariaDB dans conteneur sans systemd
+- name: Démarrer MariaDB manuellement dans un conteneur
+  shell: "mysqld_safe --datadir=/var/lib/mysql &"
+  async: 10
+  poll: 0
+  ignore_errors: yes
+
+- name: Attendre que MariaDB écoute sur le port 3306
+  wait_for:
+    port: 3306
+    host: "127.0.0.1"
+    state: started
+    timeout: 30
+
+- name: Créer la base de données roundcube
+  community.mysql.mysql_db:
+    name: roundcube
+    state: present
+    login_unix_socket: /run/mysqld/mysqld.sock
+
+- name: Créer l'utilisateur roundcube avec accès à distance
+  community.mysql.mysql_user:
+    name: roundcube
+    password: roundcube123
+    priv: 'roundcube.*:ALL'
+    host: '%'
+    state: present
+    login_unix_socket: /run/mysqld/mysqld.sock

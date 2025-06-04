@@ -1,0 +1,44 @@
+# roles/srv-mail/tasks/dovecot-sql.yml  
+- name: Déployer la configuration SQL de Dovecot
+  template:
+    src: dovecot-sql.conf.ext.j2
+    dest: /etc/dovecot/dovecot-sql.conf.ext
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart dovecot
+
+- name: Modifier 10-auth.conf
+  lineinfile:
+    path: /etc/dovecot/conf.d/10-auth.conf
+    regexp: '^#!include auth-sql.conf.ext'
+    line: '!include auth-sql.conf.ext'
+    state: present
+
+- name: Assurer les bons paramètres d’authentification
+  blockinfile:
+    path: /etc/dovecot/conf.d/10-auth.conf
+    block: |
+      disable_plaintext_auth = yes
+      auth_mechanisms = plain login
+
+- name: S'assurer que /usr/bin/doveadm est exécutable
+  file:
+    path: /usr/bin/doveadm
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Corriger socket stats-writer pour www-data
+  copy:
+    dest: /etc/dovecot/conf.d/90-postfixadmin.conf
+    content: |
+      service stats {
+        unix_listener stats-writer {
+          mode = 0660
+          user = dovecot
+          group = www-data
+        }
+      }
+  notify: Restart dovecot
+  

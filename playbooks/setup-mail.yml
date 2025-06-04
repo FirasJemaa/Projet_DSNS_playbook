@@ -1,0 +1,5 @@
+- name: Déploiement sécurisé du serveur mail SRV-MAIL
+  hosts: srv-mail
+  become: yes
+  roles:
+    - srv-mail

@@ -1,0 +1,8 @@
+#roles/dmz-dns/handlers/main.yml 
+- name: Restart Bind9
+  command: pkill named
+  ignore_errors: yes
+  notify: Start Bind9
+
+- name: Start Bind9
+  command: /usr/sbin/named -4 -u bind

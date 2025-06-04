@@ -1,0 +1,212 @@
+# roles/srv-pki/tasks/main.yml
+- name: Installer les paquets necessaires
+  apt:
+    name:
+      - openssl
+      - ca-certificates
+    state: present
+    update_cache: yes
+  tags: installation
+  notify: restart openssl
+  # Installation des paquets de base pour la PKI
+  # - openssl : outils cryptographiques
+  # - ca-certificates : bundle de certificats racines
+
+- name: Creer l'arborescence PKI
+  file:
+    path: "{{ item.path }}"
+    state: directory
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ pki_ca_dir }}", mode: "0755" }
+    - { path: "{{ pki_ca_dir }}/certs", mode: "0755" }
+    - { path: "{{ pki_ca_dir }}/crl", mode: "0755" }
+    - { path: "{{ pki_ca_dir }}/newcerts", mode: "0755" }
+    - { path: "{{ pki_ca_dir }}/private", mode: "{{ pki_private_dir_mode }}" }
+  tags: setup
+  # Creation de l'arborescence PKI standard
+  # - /private a des permissions restrictives (0700 par defaut)
+  # - Autres dossiers en 755
+
+- name: Initialiser les fichiers de base
+  file:
+    path: "{{ pki_ca_dir }}/{{ item.file }}"
+    state: touch
+    mode: "{{ item.mode }}"
+  loop:
+    - { file: "{{ pki_index_file }}", mode: "0644" }
+    - { file: "serial", mode: "0644" }
+    - { file: "crlnumber", mode: "0644" }
+  tags: setup
+  # Creation des fichiers de suivi OpenSSL
+  # - index.txt : base de donnees des certificats
+  # - serial : numero de serie incremental
+  # - crlnumber : suivi des revocation
+
+# Verifier si le fichier existe
+- name: Verifier si le fichier serial existe
+  stat:
+    path: "{{ pki_ca_dir }}/serial"
+  register: serial_file
+  tags: setup
+
+# Ensuite si le fichier n existe pas on l initialise
+- name: Initialiser le numero de serie
+  copy:
+    dest: "{{ pki_ca_dir }}/serial"
+    content: "01"
+    mode: "0644"
+  when: not serial_file.stat.exists
+  tags: setup
+
+  # Initialise le fichier serial avec 01 si inexistant
+  # Conditionne par when: pour eviter lecrasement
+
+- name: Verifier si le fichier crlnumber existe
+  stat:
+    path: "{{ pki_ca_dir }}/crlnumber"
+  register: crl_file
+  tags: setup
+
+- name: Initialiser le numero de CRL
+  copy:
+    dest: "{{ pki_ca_dir }}/crlnumber"
+    content: "01"
+    mode: "0644"
+  when: not crl_file.stat.exists
+  tags: setup
+  # Meme principe que pour le serial mais pour les CRL
+
+- name: Verifier si le fichier index.txt existe
+  stat:
+    path: "{{ pki_ca_dir }}/{{ pki_index_file }}"
+  register: index_file
+  tags: setup
+
+- name: Creer le fichier index.txt vide
+  copy:
+    dest: "{{ pki_ca_dir }}/{{ pki_index_file }}"
+    content: ""
+    mode: "0644"
+  when: not index_file.stat.exists
+  tags: setup
+  # Fichier vide pour la base de données des certificats
+
+# Deployer le fichier de configuration OpenSSL
+- name: Deployer le fichier de configuration OpenSSL
+  become: true
+  template:
+    src: openssl.cnf.j2
+    dest: "{{ pki_openssl_conf }}"
+    owner: ansible
+    group: ansible
+    mode: "0644"
+  tags: configuration
+  # Deploie le template Jinja2
+  # Utilise les variables definies dans vars/main.yml
+
+# Generer le fichier aleatoire OpenSSL
+- name: Generer le fichier aleatoire OpenSSL
+  become: true
+  command: openssl rand -out {{ pki_ca_dir }}/private/.rand 4096
+  args:
+    creates: "{{ pki_ca_dir }}/private/.rand"
+  tags: setup
+  # Fichier de graine aleatoire pour la generation de cles
+
+# Securiser les permissions des dossiers
+- name: Securiser les permissions des dossiers
+  become: true
+  file:
+    path: "{{ item }}"
+    mode: "0750"
+    owner: ansible
+    group: ansible
+  loop:
+    - "{{ pki_ca_dir }}"
+    - "{{ pki_ca_dir }}/private"
+  tags: security
+  # Double verification des permissions
+
+# PARTIE CERTIFICATS CA #
+
+# Generer la cle privee de la CA
+- name: Generer la cle privee de la CA
+  become: true
+  command: >
+    openssl genrsa
+    -out {{ pki_ca_dir }}/private/{{ pki_ca_key_name }}
+    {{ pki_key_bits }}
+  args:
+    creates: "{{ pki_ca_dir }}/private/{{ pki_ca_key_name }}"
+  notify: Secure CA private key
+  tags: certificates
+  # Genere la cle RSA (pki_key_bits = 4096 par defaut)
+  # - creates: evite la regeneration
+  # - notify: declenche le handler de securisation
+
+# Generer le certificat auto-signe de la CA
+- name: Generer le certificat auto-signe de la CA
+  become: true
+  command: >
+    openssl req -x509 -new -nodes
+    -key {{ pki_ca_dir }}/private/{{ pki_ca_key_name }}
+    -sha256
+    -days {{ pki_ca_days }}
+    -config {{ pki_openssl_conf }}
+    -extensions v3_ca
+    -subj "/C={{ pki_country }}/ST={{ pki_state }}/L={{ pki_locality }}/O={{ pki_organization }}/OU={{ pki_organizational_unit }}/CN={{ pki_common_name }}/emailAddress={{ pki_email_address }}"
+    -out {{ pki_ca_dir }}/certs/{{ pki_ca_cert_name }}
+  args:
+    creates: "{{ pki_ca_dir }}/certs/{{ pki_ca_cert_name }}"
+  tags: certificates
+  # Cree le certificat auto-signe (CA)
+  # - Valide pki_ca_days (ex: 10 ans)
+  # - Utilise les extensions v3_ca definies dans le template
+
+# Valider le certificat CA
+- name: Valider le certificat CA
+  become: true
+  command: openssl x509 -in {{ pki_ca_dir }}/certs/{{ pki_ca_cert_name }} -noout -text
+  register: cert_check
+  changed_when: false
+  tags: validation
+  # Verification technique du certificat genere
+
+# Afficher les infos du certificat
+- name: Afficher les infos du certificat
+  debug:
+    msg: |
+      CA generee avec succes !
+      Validite: {{ cert_check.stdout | regex_search('Not After : (.+)') }}
+      Sujet: {{ cert_check.stdout | regex_search('Subject: (.+)') }}
+  when: cert_check is defined
+  tags: validation
+
+
+# GESTION DES CRL  
+
+# Generer le CRL initial
+- name: Generer le CRL initial
+  become: true
+  command: >
+    openssl ca -gencrl
+    -config {{ pki_openssl_conf }}
+    -out {{ pki_ca_dir }}/crl/crl.pem
+  args:
+    creates: "{{ pki_ca_dir }}/crl/crl.pem"
+  tags: crl
+  # Genere la premiere liste de revocation (vide)
+
+# Verifier le CRL
+- name: Verifier le CRL
+  become: true
+  command: openssl crl -in {{ pki_ca_dir }}/crl/crl.pem -noout -text
+  register: crl_check
+  changed_when: false
+  when: crl_check is defined
+  tags: validation
+  # Affiche les infos du CRL
+
+- import_tasks: webmail.yml
+  tags: webmail

@@ -1,0 +1,18 @@
+<VirtualHost *:443>
+    ServerName webmail.itway.fr
+    DocumentRoot /var/lib/roundcube
+
+    SSLEngine on
+    SSLCertificateFile {{ smtp_ssl_dir }}/{{ smtp_crt_filename }}
+    SSLCertificateKeyFile {{ smtp_ssl_dir }}/{{ smtp_key_filename }}
+    SSLCertificateChainFile {{ smtp_ssl_dir }}/{{ smtp_ca_filename }}
+
+    <Directory /var/lib/roundcube>
+        Options +FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    ErrorLog  ${APACHE_LOG_DIR}/webmail_ssl_error.log
+    CustomLog ${APACHE_LOG_DIR}/webmail_ssl_access.log combined
+</VirtualHost>

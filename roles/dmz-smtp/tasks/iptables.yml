@@ -1,0 +1,31 @@
+#roles/dmz-smtp/tasks/iptables.yml 
+---
+- name: Installer iptables et iptables-persistent
+  apt:
+    name:
+      - iptables
+      - iptables-persistent
+    state: present
+    update_cache: yes
+
+- name: Créer le dossier de configuration si nécessaire
+  file:
+    path: /etc/iptables
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Déployer les règles iptables IPv4
+  template:
+    src: rules.v4.j2
+    dest: /etc/iptables/rules.v4
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - reload iptables
+
+- name: Activer les règles iptables au démarrage
+  command: netfilter-persistent save
+  when: ansible_virtualization_type != "docker"

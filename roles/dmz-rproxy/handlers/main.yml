@@ -1,0 +1,12 @@
+# roles/dmz-rproxy/handlers/main.yml
+- name: reload nginx
+  shell: |
+    if pgrep nginx > /dev/null; then
+      echo "Nginx est en cours d'exécution : reload"
+      nginx -s reload
+    else
+      echo "Nginx n'est pas lancé : démarrage"
+      nginx
+    fi
+  args:
+    executable: /bin/bash

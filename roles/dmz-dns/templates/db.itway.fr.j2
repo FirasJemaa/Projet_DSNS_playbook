@@ -1,0 +1,25 @@
+$TTL 1h
+@   IN  SOA ns1.itway.fr. admin.itway.fr. (
+        {{ ansible_date_time.date | regex_replace('-','') }}05 ; Serial auto
+        1h   ; Refresh
+        15m  ; Retry
+        1w   ; Expire
+        1h ) ; Neg TTL
+
+        IN  NS  ns1.itway.fr.
+
+; ---  Ressources DMZ  ---
+ns1         IN  A   10.10.10.4        ; DNS
+
+dmz-web     IN  A   10.10.10.2        ; serveur web
+
+rproxy      IN  A   10.10.10.5        ; reverse proxy
+@           IN  A   10.10.10.5
+www         IN  CNAME   rproxy
+
+mail        IN  A   10.10.10.3        ; SMTP
+@           IN  MX 10 mail.itway.fr.
+webmail     IN  CNAME   rproxy
+
+; ---  TXT sécurité  ---
+@           IN  TXT "v=spf1 mx -all"

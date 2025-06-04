@@ -1,0 +1,104 @@
+#roles/dmz-rproxy/tasks/main.yml
+
+- name: Installer Nginx
+  apt:
+    name: nginx
+    state: present
+    update_cache: yes
+
+# Importer les tâches pour gérer la génération/signature du certificat
+- import_tasks: cert.yml
+
+# Déployer la configuration globale nginx.conf
+- name: Déployer nginx.conf principal
+  template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+  notify: reload nginx
+
+# Déployer la config par défaut (itway.fr)
+- name: Déployer default.conf (site itway.fr)
+  template:
+    src: default.conf.j2
+    dest: "{{ rproxy_nginx_conf_dir }}/default.conf"
+  notify: reload nginx
+
+- name: Activer default.conf
+  file:
+    src: "{{ rproxy_nginx_conf_dir }}/default.conf"
+    dest: /etc/nginx/sites-enabled/default.conf
+    state: link
+  notify: reload nginx
+
+# Déployer webmail
+- name: Déployer webmail.conf
+  template:
+    src: webmail.conf.j2
+    dest: "{{ rproxy_nginx_conf_dir }}/webmail.conf"
+  notify: reload nginx
+
+- name: Activer webmail.conf
+  file:
+    src: "{{ rproxy_nginx_conf_dir }}/webmail.conf"
+    dest: /etc/nginx/sites-enabled/webmail.conf
+    state: link
+  notify: reload nginx
+
+# Déployer les paramètres SSL (ciphers, protocoles)
+- name: Déployer ssl_params.conf
+  template:
+    src: ssl_params.conf.j2
+    dest: "{{ rproxy_nginx_snippet_dir }}/ssl_params.conf"
+  notify: reload nginx
+
+# Déployer les en-têtes sécurité
+- name: Déployer security_headers.conf
+  template:
+    src: security_headers.conf.j2
+    dest: "{{ rproxy_nginx_snippet_dir }}/security_headers.conf"
+  notify: reload nginx
+
+# Vérifier que le certificat signé est présent
+- name: Vérifier la présence du certificat signé
+  stat:
+    path: "{{ rproxy_ssl_dir }}/{{ rproxy_crt_filename }}"
+  register: crt_file_check
+
+# Générer le fullchain.crt (certificat + CA)
+- name: Générer fullchain.crt (certificat + CA)
+  shell: |
+    cat {{ rproxy_ssl_dir }}/{{ rproxy_crt_filename }} {{ rproxy_ssl_dir }}/{{ rproxy_ca_filename }} > {{ rproxy_ssl_dir }}/{{ rproxy_fullchain_filename }}
+  args:
+    creates: "{{ rproxy_ssl_dir }}/{{ rproxy_fullchain_filename }}"
+  when: crt_file_check.stat.exists
+
+# Vérifier que la config Nginx est correcte
+- name: Vérifier la configuration Nginx
+  command: nginx -t
+  register: nginx_config_test
+  failed_when: "'test failed' in nginx_config_test.stderr or nginx_config_test.rc != 0"
+  changed_when: false
+  when: crt_file_check.stat.exists
+
+- name: Forcer le reload de Nginx si tout est OK
+  meta: flush_handlers
+  when:
+    - crt_file_check.stat.exists
+    - "'syntax is ok' in nginx_config_test.stdout"
+
+# Créer le répertoire web par défaut (optionnel)
+- name: Créer le répertoire /var/www/rproxy-default
+  file:
+    path: "{{ rproxy_web_root }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: '0755'
+
+- name: Déployer un index de test
+  copy:
+    dest: "{{ rproxy_web_root }}/index.html"
+    content: "<h1>DMZ-RPROXY Cert SSL OK - {{ rproxy_fqdn }}</h1>"
+    owner: www-data
+    group: www-data
+    mode: '0644'

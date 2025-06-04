@@ -1,0 +1,36 @@
+# roles/dmz-smtp/tasks/main.yml 
+---
+# 0) Paquets minimum
+- name: Installer Postfix + filtres (SpamAssassin, SPF, DMARC)
+  apt:
+    name:
+      - postfix
+      - spamassassin
+      - spamass-milter
+      - postfix-policyd-spf-perl
+      - opendmarc
+    state: present
+    update_cache: yes
+
+# 1) Gestion du certificat
+- import_tasks: cert.yml
+
+# 2) Service spamass-milter (plus de lancement manuel !)
+- name: Vérifier si spamass-milter tourne
+  shell: pgrep -f spamass-milter
+  register: spamass_status
+  ignore_errors: yes
+
+- name: Lancer spamass-milter manuellement si non lancé
+  shell: /usr/sbin/spamass-milter -u spamass-milter -p /var/spool/postfix/spamass.sock -f -r 15 -i 127.0.0.1 &
+  when: spamass_status.rc != 0
+
+
+# 3) Config Postfix + transport
+- import_tasks: postfix.yml  # (NOUVEAU fichier, voir étape 3)
+
+# 4) Pare-feu
+- import_tasks: iptables.yml
+
+# 5) Roundcube (Apache + tests)
+- import_tasks: roundcube.yml

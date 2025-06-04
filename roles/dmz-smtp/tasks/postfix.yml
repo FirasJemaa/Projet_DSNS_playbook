@@ -1,0 +1,94 @@
+# roles/dmz-smtp/tasks/postfix.yml 
+---
+- name: Déployer main.cf
+  template:
+    src: main.cf.j2
+    dest: /etc/postfix/main.cf
+  notify: restart postfix
+
+- name: Déployer master.cf
+  template:
+    src: master.cf.j2
+    dest: /etc/postfix/master.cf
+  notify: restart postfix
+
+- name: Copier la table de transport
+  copy:
+    src: transport
+    dest: /etc/postfix/transport
+  notify:
+    - postmap transport
+    - restart postfix
+
+- name: Générer la table de hash pour la table de transport
+  command: postmap /etc/postfix/transport
+  args:
+    creates: /etc/postfix/transport.db
+
+- name: Corriger les permissions du répertoire /var/spool/postfix
+  ansible.builtin.file:
+    path: /var/spool/postfix
+    owner: root
+    group: root
+    recurse: yes
+  become: true
+
+- name: Changer le groupe de /usr/sbin/postqueue
+  ansible.builtin.file:
+    path: /usr/sbin/postqueue
+    owner: root
+    group: postdrop
+  become: true
+
+- name: Changer le groupe de /usr/sbin/postdrop
+  ansible.builtin.file:
+    path: /usr/sbin/postdrop
+    owner: root
+    group: postdrop
+  become: true
+
+- name: Appliquer setgid sur /usr/sbin/postqueue
+  ansible.builtin.file:
+    path: /usr/sbin/postqueue
+    mode: '2755'
+  become: true
+
+- name: Appliquer setgid sur /usr/sbin/postdrop
+  ansible.builtin.file:
+    path: /usr/sbin/postdrop
+    mode: '2755'
+  become: true
+
+- name: Fix ownership for Postfix queue directories
+  file:
+    path: /var/spool/postfix
+    state: directory
+    recurse: yes
+    owner: postfix
+    group: postfix
+
+- name: Set correct group and mode for postqueue and postdrop
+  file:
+    path: "{{ item }}"
+    owner: root
+    group: postdrop
+    mode: '2755'
+  loop:
+    - /usr/sbin/postqueue
+    - /usr/sbin/postdrop
+
+- name: Fixer les permissions globales de Postfix
+  shell: |
+    chown -R root:root /var/spool/postfix
+    chown -R postfix:postfix /var/spool/postfix/{active,bounce,corrupt,defer,deferred,flush,hold,incoming,private}
+    chgrp postdrop /var/spool/postfix/{public,maildrop}
+    chmod 2755 /usr/sbin/postqueue /usr/sbin/postdrop
+  args:
+    executable: /bin/bash
+
+- name: Ajouter un ServerName global pour Apache
+  lineinfile:
+    path: /etc/apache2/apache2.conf
+    line: "ServerName mail.itway.fr"
+    create: yes
+    

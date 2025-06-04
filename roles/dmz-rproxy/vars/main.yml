@@ -1,0 +1,9 @@
+# roles/dmz-rproxy/vars/main.yml
+
+# Ports par défaut pour rproxy
+rproxy_port_http: 80
+rproxy_port_https: 443
+
+# Dossier par défaut pour stocker la config Nginx
+rproxy_nginx_conf_dir: "/etc/nginx/sites-available"
+rproxy_nginx_snippet_dir: "/etc/nginx/snippets"

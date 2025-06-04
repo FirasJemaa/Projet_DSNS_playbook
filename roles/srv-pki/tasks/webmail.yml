@@ -1,0 +1,50 @@
+# roles/srv-pki/tasks/webmail.yml
+- name: "[PKI] Créer clé privée webmail"
+  command: openssl genrsa -out /etc/pki/private/webmail.itway.fr.key 4096
+  args:
+    creates: /etc/pki/private/webmail.itway.fr.key
+  delegate_to: srv-pki.itway.local
+  become: yes
+
+- name: "[PKI] Copier le fichier openssl_webmail.cnf sur le serveur distant"
+  copy:
+    src: files/openssl_webmail.cnf
+    dest: /etc/pki/openssl_webmail.cnf
+    mode: "0644"
+  delegate_to: srv-pki.itway.local
+  become: yes
+
+- name: "[PKI] Générer CSR webmail"
+  command: >
+    openssl req -new
+    -key /etc/pki/private/webmail.itway.fr.key
+    -out /etc/pki/reqs/webmail.itway.fr.csr
+    -config /etc/pki/openssl_webmail.cnf
+  args:
+    creates: /etc/pki/reqs/webmail.itway.fr.csr
+  delegate_to: srv-pki.itway.local
+  become: yes
+
+- name: "[PKI] Signer le certificat webmail"
+  command: >
+    openssl x509 -req
+    -in /etc/pki/reqs/webmail.itway.fr.csr
+    -CA /etc/pki/certs/ca.crt
+    -CAkey /etc/pki/private/ca.key
+    -CAcreateserial
+    -out /etc/pki/certs/webmail.itway.fr.crt
+    -days 3650 -sha256
+    -extensions v3_req
+    -extfile /etc/pki/openssl_webmail.cnf
+  args:
+    creates: /etc/pki/certs/webmail.itway.fr.crt
+  delegate_to: srv-pki.itway.local
+  become: yes
+
+- name: "[PKI] Générer fullchain CRT webmail"
+  command: >
+    bash -c 'cat /etc/pki/certs/webmail.itway.fr.crt /etc/pki/certs/ca.crt > /etc/pki/certs/webmail.itway.fr.fullchain.crt'
+  args:
+    creates: /etc/pki/certs/webmail.itway.fr.fullchain.crt
+  delegate_to: srv-pki.itway.local
+  become: yes

@@ -1,0 +1,18 @@
+# inventory/group_vars/srv-mail/main.yml 
+mail_fqdn: "srv-mail.itway.local"
+ssl_dir: "/etc/postfix/ssl"
+key_filename: "srv-mail.key"
+csr_filename: "srv-mail.csr"
+crt_filename: "srv-mail.crt"
+ca_filename: "ca.crt"
+
+mail_country: "FR"
+mail_state: "Ile-de-France"
+mail_org: "ITWay"
+mail_ou: "SRV-MAIL"
+
+srv_pki_host: "srv-pki.itway.local"
+pki_openssl_conf: "/etc/ssl/openssl.cnf"
+pki_dir: "/etc/pki"
+
+vault_file: "group_vars/srv-mail/vault.yml"

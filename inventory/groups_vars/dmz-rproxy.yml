@@ -1,0 +1,41 @@
+# inventory/group_vars/dmz-rproxy.yml 
+
+# Nom DNS de base du reverse proxy
+rproxy_fqdn: "itway.fr"
+rproxy_ssl_dir: "/etc/nginx/ssl"
+rproxy_key_filename: "itway.fr.key"
+rproxy_csr_filename: "itway.fr.csr"
+rproxy_crt_filename: "itway.fr.crt"
+rproxy_ca_filename: "ca.crt"
+rproxy_fullchain_filename: "fullchain.crt"
+
+# === Certificat pour webmail.itway.fr ===
+webmail_fqdn: "webmail.itway.fr"
+webmail_ssl_dir: "/etc/nginx/ssl"
+webmail_key_filename: "webmail.itway.fr.key"
+webmail_csr_filename: "webmail.itway.fr.csr"
+webmail_crt_filename: "webmail.itway.fr.crt"
+webmail_ca_filename: "ca.crt"
+webmail_fullchain_filename: "webmail.itway.fr.fullchain.crt"
+
+# DN pour la CSR
+rproxy_country: "FR"
+rproxy_state: "Ile-de-France"
+rproxy_org: "ITWay"
+rproxy_ou: "DMZ-RPROXY"
+
+# Serveur PKI et config OpenSSL
+srv_pki_host: "srv-pki.itway.local"
+pki_openssl_conf: "/etc/ssl/openssl.cnf"
+pki_dir: "/etc/pki"
+
+# SSL params
+rproxy_ssl_protocols: "TLSv1.2 TLSv1.3"
+rproxy_ssl_ciphers: "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256"
+rproxy_hsts_max_age: 31536000
+
+# Répertoire web par défaut (facultatif)
+rproxy_web_root: "/var/www/rproxy-default"
+rproxy_index: "index.html"
+
+rproxy_common_name: "itway.fr"

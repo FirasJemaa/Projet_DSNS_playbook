@@ -1,0 +1,23 @@
+myhostname = {{ mail_fqdn }}
+mydomain = itway.local
+myorigin = $mydomain
+inet_interfaces = all
+mydestination = $myhostname, localhost.$mydomain, localhost
+relayhost = [mail.itway.fr]:25
+
+# TLS
+smtpd_tls_cert_file = {{ ssl_dir }}/{{ crt_filename }}
+smtpd_tls_key_file  = {{ ssl_dir }}/{{ key_filename }}
+smtpd_tls_CAfile    = {{ ssl_dir }}/{{ ca_filename }}
+smtpd_use_tls = yes
+smtpd_tls_security_level = encrypt
+
+# Restrictions d'accès
+smtpd_relay_restrictions = permit_mynetworks permit_sasl_authenticated defer_unauth_destination
+
+# Sécurité supplémentaire
+disable_vrfy_command = yes
+smtpd_helo_required = yes
+smtpd_tls_auth_only = yes
+#smtpd_tls_loglevel = 1
+tls_random_source = dev:/dev/urandom

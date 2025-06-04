@@ -1,0 +1,75 @@
+# roles/dmz-smtp/tasks/roundcube.yml 
+---
+# 1) Installation des paquets
+- name: Installer Apache, PHP et Roundcube
+  apt:
+    name:
+      - apache2
+      - php
+      - php-intl
+      - php-mysql
+      - php-mbstring
+      - php-xml
+      - php-cli
+      - php-common
+      - php-curl
+      - roundcube
+    state: present
+    update_cache: yes
+
+# 2) Déployer la configuration personnalisée de Roundcube
+- name: Déployer le config.inc.php de Roundcube
+  template:
+    src: roundcube-config.inc.php.j2
+    dest: /etc/roundcube/config.inc.php
+    mode: '0644'
+  notify: restart apache2
+
+# 3) Déployer le vhost Apache HTTPS pour webmail.itway.fr
+- name: Déployer VirtualHost HTTPS pour Roundcube
+  template:
+    src: webmail-ssl.conf.j2
+    dest: /etc/apache2/sites-available/webmail-ssl.conf
+  notify: restart apache2
+
+# 4) Activer le site HTTPS webmail.itway.fr (idempotent)
+- name: Activer le site HTTPS webmail.itway.fr
+  command: a2ensite webmail-ssl
+  args:
+    creates: /etc/apache2/sites-enabled/webmail-ssl.conf
+  notify: restart apache2
+
+# 5) Désactiver l’ancien site HTTP si présent
+- name: Désactiver ancien site HTTP Roundcube (si actif)
+  command: a2dissite webmail.itway.fr.conf
+  ignore_errors: yes
+  notify: restart apache2
+
+# 6) Forcer exécution immédiate des handlers Apache
+- meta: flush_handlers
+
+# 7) Vérifier l’accès HTTP local
+- name: Vérifier accès HTTP local à Roundcube
+  uri:
+    url: http://localhost/
+    return_content: no
+    status_code: 200
+  register: webmail_local
+  ignore_errors: true
+
+- debug:
+    msg: "Statut accès Roundcube local : {{ webmail_local.status | default('injoignable') }}"
+
+# 8) Vérifier l’accès public via le reverse proxy
+- name: Tester accès public HTTPS à Roundcube (webmail.itway.fr)
+  uri:
+    url: https://webmail.itway.fr/
+    method: GET
+    return_content: no
+    validate_certs: no
+    status_code: 200
+  register: webmail_public
+  ignore_errors: true
+
+- debug:
+    msg: "Statut accès Roundcube public : {{ webmail_public.status | default('injoignable') }}"

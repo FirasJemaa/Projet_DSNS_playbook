@@ -1,0 +1,88 @@
+# roles/dmz-smtp/tasks/cert.yml 
+
+- block:
+    # 1) Créer répertoire SSL sur DMZ-SMTP
+    - name: "[CERT] Créer le répertoire SSL"
+      file:
+        path: "{{ smtp_ssl_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: "[CERT] Générer la clé privée"
+      command: >
+        openssl genrsa -out {{ smtp_ssl_dir }}/{{ smtp_key_filename }} 4096
+      args:
+        creates: "{{ smtp_ssl_dir }}/{{ smtp_key_filename }}"
+
+    - name: "[CERT] Générer la CSR"
+      command: >
+        openssl req -new
+        -key {{ smtp_ssl_dir }}/{{ smtp_key_filename }}
+        -out {{ smtp_ssl_dir }}/{{ smtp_csr_filename }}
+        -subj "/C={{ smtp_country }}/ST={{ smtp_state }}/O={{ smtp_org }}/OU={{ smtp_ou }}/CN={{ smtp_fqdn }}"
+      args:
+        creates: "{{ smtp_ssl_dir }}/{{ smtp_csr_filename }}"
+
+    # 2) Récupérer la CSR vers le contrôleur Ansible
+    - name: "[CERT] fetch la CSR -> Ansible controller"
+      fetch:
+        src: "{{ smtp_ssl_dir }}/{{ smtp_csr_filename }}"
+        dest: "files/dmz-smtp/{{ smtp_csr_filename }}"
+        flat: yes
+
+    # 3) Signer la CSR sur SRV-PKI (délégation)
+    - name: "[PKI] Copier la CSR vers SRV-PKI"
+      copy:
+        src: "files/dmz-smtp/{{ smtp_csr_filename }}"
+        dest: "{{ pki_dir }}/reqs/{{ smtp_csr_filename }}"
+        mode: "0644"
+      delegate_to: "{{ srv_pki_host }}"
+      become: yes
+
+    - name: "[CERT] Signer la CSR sur SRV-PKI"
+      command: >
+        openssl ca
+        -config {{ pki_openssl_conf }}
+        -extensions v3_server
+        -in {{ pki_dir }}/reqs/{{ smtp_csr_filename }}
+        -out {{ pki_dir }}/certs/{{ smtp_crt_filename }}
+        -batch
+      args:
+        creates: "{{ pki_dir }}/certs/{{ smtp_crt_filename }}"
+      delegate_to: "{{ srv_pki_host }}"
+      become: yes
+
+    # 4) Récupérer le CRT signé sur Ansible
+    - name: "[CERT] fetch le CRT -> Ansible"
+      fetch:
+        src: "{{ pki_dir }}/certs/{{ smtp_crt_filename }}"
+        dest: "files/dmz-smtp/{{ smtp_crt_filename }}"
+        flat: yes
+      delegate_to: "{{ srv_pki_host }}"
+      become: yes
+
+    - name: "[CERT] fetch la CA -> Ansible"
+      fetch:
+        src: "{{ pki_dir }}/certs/ca.crt"
+        dest: "files/dmz-smtp/ca.crt"
+        flat: yes
+      delegate_to: "{{ srv_pki_host }}"
+      become: yes
+
+    # 5) Copier le CRT et la CA sur DMZ-SMTP
+    - name: "[CERT] Copier le CRT signé sur DMZ-SMTP"
+      copy:
+        src: "files/dmz-smtp/{{ smtp_crt_filename }}"
+        dest: "{{ smtp_ssl_dir }}/{{ smtp_crt_filename }}"
+        mode: '0644'
+
+    - name: "[CERT] Copier la CA sur DMZ-SMTP"
+      copy:
+        src: "files/dmz-smtp/ca.crt"
+        dest: "{{ smtp_ssl_dir }}/{{ smtp_ca_filename }}"
+        mode: '0644'
+
+  rescue:
+    - name: "Erreur dans la génération/signature du certificat"
+      debug:
+        msg: "Problème lors de la signature du certificat sur la PKI"

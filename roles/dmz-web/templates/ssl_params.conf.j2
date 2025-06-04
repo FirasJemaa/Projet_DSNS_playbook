@@ -1,0 +1,21 @@
+ssl_protocols {{ dmz_web_ssl_protocols }};
+# Définit les versions de TLS autorisées (ex: TLSv1.2, TLSv1.3).
+# En bloquant les versions obsolètes comme SSLv3, TLSv1.0 et TLSv1.1, on évite de nombreuses failles (ex: POODLE).
+
+ssl_ciphers {{ dmz_web_ssl_ciphers }};
+# Liste des suites de chiffrement autorisées.
+# On exclut les ciphers faibles comme RC4, DES, MD5, etc.
+# Exemple de valeur : "HIGH:!aNULL:!MD5:!ADH:!SHA1:!DES:!RC4"
+
+ssl_prefer_server_ciphers on;
+# Force le serveur à imposer ses propres préférences de chiffrement plutôt que celles du client.
+# Cela garantit qu’on utilise es ciphers les plus sécurisés disponibles.
+
+ssl_session_cache shared:SSL:10m;
+# Active la mise en cache des sessions SSL pour améliorer les performances.
+# Permet à un client qui se reconnecte de ne pas refaire une négociation complète.
+# 10m = cache jusqu’à 10 Mo de sessions SSL partagées.
+
+ssl_session_timeout 10m;
+# Définit la durée de vie d'une session SSL mise en cache.
+# Après 10 minutes, la session expirera et une nouvelle négociation sera nécessaire.

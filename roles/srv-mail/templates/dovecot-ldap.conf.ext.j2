@@ -1,0 +1,19 @@
+uris = {{ dovecot_ldap_uri }}
+
+dn = {{ dovecot_ldap_bind_dn }}
+dnpass = {{ dovecot_ldap_bind_pw }}
+
+auth_bind = yes
+ldap_version = 3
+
+base = {{ dovecot_ldap_base }}
+scope = subtree
+
+user_attrs = \
+  =home=/var/vmail/%d/%n, \
+  =mail=maildir:/var/vmail/%d/%n/Maildir, \
+  =uid=vmail, \
+  =gid=vmail
+
+user_filter = (&(objectClass=user)(sAMAccountName=%n))
+pass_filter = (&(objectClass=user)(sAMAccountName=%n))

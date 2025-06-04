@@ -1,0 +1,54 @@
+# roles/dmz-dns/tasks/main.yml                 
+- name: Installer Bind9 et dépendances
+  apt:
+    name:
+      - bind9
+      - bind9utils
+      - bind9-doc
+    state: present
+    update_cache: yes
+
+- name: Déployer named.conf.local
+  template:
+    src: named.conf.local.j2
+    dest: /etc/bind/named.conf.local
+  notify: Restart Bind9
+
+- name: Déployer named.conf.options
+  template:
+    src: named.conf.options.j2
+    dest: /etc/bind/named.conf.options
+  notify: Restart Bind9
+
+- name: Déployer la zone itway.fr
+  template:
+    src: db.itway.fr.j2
+    dest: /etc/bind/db.itway.fr
+  notify: Restart Bind9
+
+- name: Déployer la zone int.itway.fr
+  template:
+    src: db.int.itway.fr.j2
+    dest: /etc/bind/db.int.itway.fr
+  notify: Restart Bind9
+
+- name: Déployer la zone reverse 10.10.10
+  template:
+    src: db.10.10.10.rev.j2
+    dest: /etc/bind/db.10.10.10.rev
+  notify: Restart Bind9
+
+# Vérifie si Bind tourne déjà
+- name: Vérifier si Bind9 tourne
+  command: pgrep named
+  register: bind_running
+  ignore_errors: yes
+  changed_when: false
+  failed_when: bind_running.rc not in [0, 1]
+
+# Démarre Bind si besoin
+- name: Démarrer Bind9 si arrêté
+  command: /usr/sbin/named -4 -u bind
+  when: bind_running.rc != 0
+  async: 10
+  poll: 0

@@ -1,0 +1,23 @@
+[ req ]
+default_bits       = 4096
+distinguished_name = req_distinguished_name
+req_extensions     = v3_req
+prompt             = no
+
+[ req_distinguished_name ]
+C  = FR
+ST = Ile-de-France
+L  = Paris
+O  = ITWay
+OU = DMZ-RPROXY
+CN = webmail.itway.fr
+
+[ v3_req ]
+subjectAltName = @alt_names
+keyUsage = digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+
+[ alt_names ]
+DNS.1 = webmail.itway.fr
+DNS.2 = itway.fr
+DNS.3 = dmz-web.itway.fr

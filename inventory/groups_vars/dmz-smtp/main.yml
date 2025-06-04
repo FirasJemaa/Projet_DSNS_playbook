@@ -1,0 +1,38 @@
+#inventory/group_vars/dmz-smtp/main.yml 
+
+# Nom FQDN de la machine
+smtp_fqdn: "mail.itway.fr"
+
+# Domaine racine
+smtp_domain: "itway.fr"
+
+# Réseaux autorisés à relayer
+smtp_mynetworks: "127.0.0.0/8, 172.16.0.0/16"
+
+# Répertoire & fichiers TLS
+smtp_ssl_dir: "/etc/postfix/ssl"
+smtp_key_filename: "dmz-smtp.key"
+smtp_csr_filename: "dmz-smtp.csr"
+smtp_crt_filename: "dmz-smtp.crt"
+smtp_ca_filename:  "ca.crt"
+
+# DN pour la CSR
+smtp_country: "FR"
+smtp_state: "Ile-de-France"
+smtp_org: "ITWay"
+smtp_ou: "DMZ-SMTP"
+
+# Hôte de la PKI interne
+srv_pki_host: "srv-pki.itway.local"
+pki_openssl_conf: "/etc/ssl/openssl.cnf"
+pki_dir: "/etc/pki"
+
+# Ports exposés
+smtp_ports_inbound: [25, 465, 587]
+
+# Relais interne (vers SRV-MAIL)
+smtp_relayhost_internal: "[srv-mail.itway.local]:25"
+smtp_open_http: false
+
+# Activer SpamAssassin
+smtp_spamassassin: true

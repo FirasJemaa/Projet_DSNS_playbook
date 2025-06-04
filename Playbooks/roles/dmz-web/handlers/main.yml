@@ -1,7 +1,0 @@
-########################################
-# roles/dmz-web/handlers/main.yml
-########################################
-- name: reload nginx
-  service:
-    name: nginx
-    state: reloaded

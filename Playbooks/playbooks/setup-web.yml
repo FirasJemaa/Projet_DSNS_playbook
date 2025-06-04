@@ -1,8 +1,0 @@
-########################################
-# playbooks/setup-web.yml
-########################################
-- name: Déployer le serveur web + Cert SSL complet
-  hosts: dmz-web
-  become: yes
-  roles:
-    - dmz-web
